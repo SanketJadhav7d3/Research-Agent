@@ -21,48 +21,6 @@ def _finding(claim: str, snippet: str, url: str, title: str) -> dict[str, Any]:
 
 
 @tool
-def web_search(query: str) -> list[dict]:
-    """Search the web for general information on any topic.
-
-    The best default when you need broad background, definitions, analysis or
-    opinion. Use it first unless the question clearly calls for a specialised
-    tool. Returns several results with titles, URLs and snippets.
-    """
-    return [
-        _finding(
-            f"{MOCK_NOTE} General analysis relating to: {query}",
-            f"{MOCK_NOTE} A broad discussion of '{query}'.",
-            "https://example.com/analysis",
-            "Industry Analysis Report",
-        ),
-        _finding(
-            f"{MOCK_NOTE} Secondary perspective on: {query}",
-            f"{MOCK_NOTE} An independent view on '{query}'.",
-            "https://example.org/research",
-            "Independent Research Brief",
-        ),
-    ]
-
-
-@tool
-def news_search(query: str) -> list[dict]:
-    """Search recent news articles for current events and breaking developments.
-
-    Use when the question concerns something recent, ongoing or time-sensitive —
-    policy announcements, market moves, company events. Not useful for
-    background or historical context. Returns headlines with publication dates.
-    """
-    return [
-        _finding(
-            f"{MOCK_NOTE} Recent development regarding: {query}",
-            f"{MOCK_NOTE} A news report about '{query}', dated this month.",
-            "https://example.net/news",
-            "Financial Times style wire report",
-        ),
-    ]
-
-
-@tool
 def financial_data(ticker_or_company: str) -> list[dict]:
     """Look up market data and fundamentals for a public company.
 
@@ -99,5 +57,3 @@ def read_page(url: str) -> list[dict]:
     ]
 
 
-ALL_TOOLS = [web_search, news_search, financial_data, read_page]
-TOOLS_BY_NAME = {t.name: t for t in ALL_TOOLS}

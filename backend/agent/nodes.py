@@ -14,7 +14,7 @@ from config import MAX_MODEL_TURNS_CAP, MAX_TOOL_CALLS_CAP
 from agent.llm import get_model
 from agent.schemas import ClarifiedGoal, Reflection, ResearchPlan
 from agent.state import AgentState
-from agent.tools.mock import ALL_TOOLS, TOOLS_BY_NAME
+from agent.tools import ALL_TOOLS, TOOLS_BY_NAME
 
 log = logging.getLogger(__name__)
 

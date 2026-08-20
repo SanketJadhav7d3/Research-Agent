@@ -9,6 +9,7 @@ dependencies = [
     "pydantic-settings>=2.6",
     "langgraph>=0.2",
     "langchain[google-genai,openai,anthropic]>=0.3",
+    "tavily-python>=0.5",
 ]
 
 [tool.uv]

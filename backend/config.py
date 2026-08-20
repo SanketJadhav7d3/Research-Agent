@@ -1,6 +1,11 @@
 """Application settings, loaded from environment variables."""
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BACKEND_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = BACKEND_DIR.parent
 
 # Hard safety caps. These are enforced server-side and are never overridable by
 # a client request — the deployed demo runs on our own API key, so a caller must
@@ -11,7 +16,13 @@ MAX_MODEL_TURNS_CAP = 6
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # Paths are resolved from this file, not the working directory, so settings
+    # load identically whether run from the repo root, from backend/, or in the
+    # container (where only backend/ is present). Later files win.
+    model_config = SettingsConfigDict(
+        env_file=(PROJECT_ROOT / ".env", BACKEND_DIR / ".env"),
+        extra="ignore",
+    )
 
     # Comma-separated list of origins allowed to call this API.
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
@@ -26,6 +37,9 @@ class Settings(BaseSettings):
     google_api_key: str = ""
     openai_api_key: str = ""
     anthropic_api_key: str = ""
+
+    # Research tool keys.
+    tavily_api_key: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
