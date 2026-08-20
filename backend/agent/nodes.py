@@ -7,6 +7,7 @@ stays swappable.
 
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
@@ -22,6 +23,25 @@ from agent.state import AgentState
 from agent.tools import ALL_TOOLS, TOOLS_BY_NAME
 
 log = logging.getLogger(__name__)
+
+
+def _evidence(findings: list[dict], per_item_chars: int = 1500) -> str:
+    """Render findings for the model.
+
+    Includes the actual content, not just the claim line: a page read stores
+    thousands of characters in `snippet`, and reasoning from the claim alone
+    ("Full text of <url>") throws away everything that was fetched. Each item is
+    truncated so one long page cannot crowd out the rest.
+    """
+    parts = []
+    for i, f in enumerate(findings, 1):
+        body = (f.get("snippet") or "").strip()
+        if len(body) > per_item_chars:
+            body = body[:per_item_chars] + " [...]"
+        parts.append(
+            f"[{i}] {f.get('title') or f.get('claim')} - {f.get('url')}\n{body}"
+        )
+    return "\n\n".join(parts)
 
 
 def _text(response) -> str:
@@ -159,8 +179,11 @@ def execute(state: AgentState) -> dict:
             log.info("model finished after %d turn(s)", turn + 1)
             break
 
+        # Run this turn's tool calls concurrently. Page reads take seconds, so
+        # doing them one after another would dominate the run time.
+        runnable = []
         for call in response.tool_calls:
-            if len(tool_calls) - calls_before >= budget:
+            if len(runnable) + len(tool_calls) - calls_before >= budget:
                 stopped_early = True
                 break
 
@@ -175,27 +198,51 @@ def execute(state: AgentState) -> dict:
                 continue
 
             log.info("tool: %s(%s)", call["name"], call["args"])
+            # Emitted from this thread: the stream writer is not visible inside
+            # worker threads.
             emit("tool_call", tool=call["name"], input=call["args"])
-            results = tool.invoke(call["args"])
-            emit(
-                "tool_result",
-                tool=call["name"],
-                result_count=len(results),
-                sources=[
-                    {"url": r.get("url"), "title": r.get("title")}
-                    for r in results if r.get("url")
-                ],
-            )
+            runnable.append((call, tool))
 
-            tool_calls.append({
-                "tool": call["name"],
-                "input": call["args"],
-                "result_count": len(results),
-            })
-            findings.extend(results)
-            messages.append(ToolMessage(
-                content=json.dumps(results), tool_call_id=call["id"]
-            ))
+        if runnable:
+            with ThreadPoolExecutor(max_workers=len(runnable)) as pool:
+                futures = {
+                    pool.submit(t.invoke, c["args"]): c for c, t in runnable
+                }
+                outcomes = []
+                for future in as_completed(futures):
+                    call = futures[future]
+                    try:
+                        outcomes.append((call, future.result()))
+                    except Exception as exc:  # noqa: BLE001 - reported to the model
+                        log.warning("tool %s raised: %s", call["name"], exc)
+                        outcomes.append((call, [{
+                            "claim": f"{call['name']} failed",
+                            "snippet": str(exc), "url": "",
+                            "title": "Tool error", "error": True,
+                        }]))
+
+            # Append in the model's original order so the transcript matches the
+            # order it asked for, regardless of which finished first.
+            order = {id(c): i for i, (c, _) in enumerate(runnable)}
+            for call, results in sorted(outcomes, key=lambda o: order[id(o[0])]):
+                emit(
+                    "tool_result",
+                    tool=call["name"],
+                    result_count=len(results),
+                    sources=[
+                        {"url": r.get("url"), "title": r.get("title")}
+                        for r in results if r.get("url")
+                    ],
+                )
+                tool_calls.append({
+                    "tool": call["name"],
+                    "input": call["args"],
+                    "result_count": len(results),
+                })
+                findings.extend(results)
+                messages.append(ToolMessage(
+                    content=json.dumps(results), tool_call_id=call["id"]
+                ))
 
         if stopped_early:
             log.warning("round tool budget (%d) spent", budget)
@@ -213,9 +260,7 @@ def execute(state: AgentState) -> dict:
 def reflect(state: AgentState) -> dict:
     """Score how well the findings actually answer the goal."""
     emit("node_start", node="reflect")
-    evidence = "\n".join(
-        f"- {f['claim']} (source: {f['url']})" for f in state["findings"]
-    )
+    evidence = _evidence(state["findings"])
     result = _model(state).with_structured_output(Reflection).invoke(
         "Assess honestly whether the evidence below answers the research goal. "
         "Be critical: score low if sources are thin, irrelevant or fabricated. "
@@ -253,9 +298,7 @@ def synthesize(state: AgentState) -> dict:
     numbered = "\n".join(
         f"[{i + 1}] {c['title']} - {c['url']}" for i, c in enumerate(citations)
     )
-    evidence = "\n".join(
-        f"- {f['claim']} (source: {f['url']})" for f in state["findings"]
-    )
+    evidence = _evidence(state["findings"])
 
     response = _model(state).invoke(
         "Write a markdown research report answering the goal, using only the "

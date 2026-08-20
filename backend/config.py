@@ -44,6 +44,7 @@ class Settings(BaseSettings):
 
     # Research tool keys.
     tavily_api_key: str = ""
+    jina_api_key: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
