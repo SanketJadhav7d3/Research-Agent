@@ -6,7 +6,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir uv
+# Copy the uv binary from its official image — no pip, no root-install warning.
+# Pinned to match the version used locally to generate uv.lock.
+COPY --from=ghcr.io/astral-sh/uv:0.11.2 /uv /usr/local/bin/uv
 
 # Dependency layer: cached until pyproject/lockfile actually change.
 COPY pyproject.toml uv.lock ./
