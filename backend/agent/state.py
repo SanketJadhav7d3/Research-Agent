@@ -19,5 +19,6 @@ class AgentState(TypedDict, total=False):
     gaps: list[str]             # Sub-questions still weakly answered
     iteration: int              # Execute -> reflect loops completed
     max_iterations: int         # Hard cap
+    stopped_early: bool         # True if a safety cap ended Execute, not the model
     report: str                 # Final markdown report
     citations: list[dict]       # Sources referenced by the report

@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # not be able to ask for unbounded work.
 MAX_ITERATIONS_CAP = 3
 MAX_TOOL_CALLS_CAP = 12
+MAX_MODEL_TURNS_CAP = 6
 
 
 class Settings(BaseSettings):

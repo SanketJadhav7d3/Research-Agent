@@ -5,13 +5,16 @@ merges the result. Nodes read their model through get_model() so the provider
 stays swappable.
 """
 
+import json
 import logging
 
-from config import MAX_TOOL_CALLS_CAP
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+
+from config import MAX_MODEL_TURNS_CAP, MAX_TOOL_CALLS_CAP
 from agent.llm import get_model
 from agent.schemas import ClarifiedGoal, Reflection, ResearchPlan
 from agent.state import AgentState
-from agent.tools.mock import mock_search
+from agent.tools.mock import ALL_TOOLS, TOOLS_BY_NAME
 
 log = logging.getLogger(__name__)
 
@@ -49,33 +52,87 @@ def plan(state: AgentState) -> dict:
 
 
 def execute(state: AgentState) -> dict:
-    """Gather evidence for each sub-question.
+    """The free node — the model drives its own research.
 
-    Sprint 2 walks the plan and calls the mock tool for each sub-question. From
-    Sprint 3 the model chooses which tool to call per sub-question; the caps
-    below stay regardless.
+    Rather than walking the plan mechanically, the model is given every tool and
+    decides what to call, in what order, and when it has enough. It may skip
+    sub-questions, chase leads the plan never mentioned, call one tool many
+    times, or call several at once. The loop ends when the model stops asking
+    for tools; the caps are a safety net, not the expected exit.
     """
+    model = _model(state).bind_tools(ALL_TOOLS)
+
+    messages: list = [
+        SystemMessage(
+            "You are a research agent gathering evidence.\n\n"
+            "You have tools available. Decide for yourself which to use and in "
+            "what order — the plan below is guidance, not a checklist. Skip "
+            "parts already answered, follow up on anything interesting, and "
+            "pursue questions the plan missed if they matter.\n\n"
+            "Call tools in parallel when the queries are independent. Stop "
+            "calling tools once you have enough evidence, and then briefly "
+            "summarise what you found and what is still missing."
+        ),
+        HumanMessage(
+            f"Research goal: {state['clarified_goal']}\n\n"
+            "Sub-questions identified during planning:\n"
+            + "\n".join(f"- {q}" for q in state["plan"])
+        ),
+    ]
+
     tool_calls = list(state.get("tool_calls", []))
     findings = list(state.get("findings", []))
+    stopped_early = False
 
-    for question in state["plan"]:
-        if len(tool_calls) >= MAX_TOOL_CALLS_CAP:
-            log.warning("tool call cap (%d) reached; stopping early", MAX_TOOL_CALLS_CAP)
+    for turn in range(MAX_MODEL_TURNS_CAP):
+        response = model.invoke(messages)
+        messages.append(response)
+
+        if not response.tool_calls:
+            log.info("model finished after %d turn(s)", turn + 1)
             break
 
-        results = mock_search(question)
-        tool_calls.append(
-            {"tool": "mock_search", "input": question, "result_count": len(results)}
-        )
-        findings.extend(results)
+        for call in response.tool_calls:
+            if len(tool_calls) >= MAX_TOOL_CALLS_CAP:
+                stopped_early = True
+                break
+
+            tool = TOOLS_BY_NAME.get(call["name"])
+            if tool is None:
+                # Shouldn't happen, but a hallucinated name must not crash the run.
+                log.warning("unknown tool %r", call["name"])
+                messages.append(ToolMessage(
+                    content=f"No such tool: {call['name']}",
+                    tool_call_id=call["id"],
+                ))
+                continue
+
+            log.info("tool: %s(%s)", call["name"], call["args"])
+            results = tool.invoke(call["args"])
+
+            tool_calls.append({
+                "tool": call["name"],
+                "input": call["args"],
+                "result_count": len(results),
+            })
+            findings.extend(results)
+            messages.append(ToolMessage(
+                content=json.dumps(results), tool_call_id=call["id"]
+            ))
+
+        if stopped_early:
+            log.warning("tool call cap (%d) reached", MAX_TOOL_CALLS_CAP)
+            break
+    else:
+        stopped_early = True
+        log.warning("model turn cap (%d) reached", MAX_MODEL_TURNS_CAP)
 
     return {
         "tool_calls": tool_calls,
         "findings": findings,
+        "stopped_early": stopped_early,
         "iteration": state.get("iteration", 0) + 1,
     }
-
-
 def reflect(state: AgentState) -> dict:
     """Score how well the findings actually answer the goal."""
     evidence = "\n".join(
