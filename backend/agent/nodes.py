@@ -11,6 +11,7 @@ import logging
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
 from config import MAX_MODEL_TURNS_CAP, MAX_TOOL_CALLS_CAP
+from agent.events import emit
 from agent.llm import get_model
 from agent.schemas import ClarifiedGoal, Reflection, ResearchPlan
 from agent.state import AgentState
@@ -20,12 +21,17 @@ log = logging.getLogger(__name__)
 
 
 def _model(state: AgentState):
-    """Model for this run. Per-request provider overrides arrive in Sprint 4."""
-    return get_model()
+    """Model for this run, honouring any per-request provider override."""
+    return get_model(
+        provider=state.get("provider") or None,
+        model=state.get("model") or None,
+        api_key=state.get("api_key") or None,
+    )
 
 
 def clarify(state: AgentState) -> dict:
     """Restate the goal precisely and surface the assumptions being made."""
+    emit("node_start", node="clarify")
     result = _model(state).with_structured_output(ClarifiedGoal).invoke(
         "You are scoping a research task. Restate the goal below precisely: make "
         "the scope, timeframe and subject explicit, and resolve any ambiguity. "
@@ -41,6 +47,7 @@ def clarify(state: AgentState) -> dict:
 
 def plan(state: AgentState) -> dict:
     """Break the goal into independently researchable sub-questions."""
+    emit("node_start", node="plan")
     result = _model(state).with_structured_output(ResearchPlan).invoke(
         "Break this research goal into 3-5 concrete sub-questions. Each must be "
         "independently researchable, and together they must fully cover the "
@@ -60,6 +67,7 @@ def execute(state: AgentState) -> dict:
     times, or call several at once. The loop ends when the model stops asking
     for tools; the caps are a safety net, not the expected exit.
     """
+    emit("node_start", node="execute")
     model = _model(state).bind_tools(ALL_TOOLS)
 
     messages: list = [
@@ -108,7 +116,17 @@ def execute(state: AgentState) -> dict:
                 continue
 
             log.info("tool: %s(%s)", call["name"], call["args"])
+            emit("tool_call", tool=call["name"], input=call["args"])
             results = tool.invoke(call["args"])
+            emit(
+                "tool_result",
+                tool=call["name"],
+                result_count=len(results),
+                sources=[
+                    {"url": r.get("url"), "title": r.get("title")}
+                    for r in results if r.get("url")
+                ],
+            )
 
             tool_calls.append({
                 "tool": call["name"],
@@ -135,6 +153,7 @@ def execute(state: AgentState) -> dict:
     }
 def reflect(state: AgentState) -> dict:
     """Score how well the findings actually answer the goal."""
+    emit("node_start", node="reflect")
     evidence = "\n".join(
         f"- {f['claim']} (source: {f['url']})" for f in state["findings"]
     )
@@ -148,6 +167,13 @@ def reflect(state: AgentState) -> dict:
         f"Evidence:\n{evidence}"
     )
     log.info("confidence %.2f - %s", result.confidence, result.reason)
+    emit(
+        "confidence_check",
+        score=result.confidence,
+        reason=result.reason,
+        gaps=result.gaps,
+        loop=state.get("iteration", 0),
+    )
     return {
         "confidence": result.confidence,
         "confidence_reason": result.reason,
@@ -157,6 +183,7 @@ def reflect(state: AgentState) -> dict:
 
 def synthesize(state: AgentState) -> dict:
     """Write the final cited report."""
+    emit("node_start", node="synthesize")
     citations = []
     seen = set()
     for f in state["findings"]:
@@ -184,4 +211,11 @@ def synthesize(state: AgentState) -> dict:
     )
 
     report = f"{response.content}\n\n## Sources\n\n{numbered}\n"
+    emit(
+        "report_ready",
+        report=report,
+        citations=citations,
+        total_tool_calls=len(state.get("tool_calls", [])),
+        loops=state.get("iteration", 0),
+    )
     return {"report": report, "citations": citations}

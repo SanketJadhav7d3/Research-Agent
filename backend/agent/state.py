@@ -19,6 +19,12 @@ class AgentState(TypedDict, total=False):
     gaps: list[str]             # Sub-questions still weakly answered
     iteration: int              # Execute -> reflect loops completed
     max_iterations: int         # Hard cap
+
+    # Per-request model selection. api_key is a caller-supplied key used for
+    # this run only — never logged, never persisted.
+    provider: str
+    model: str
+    api_key: str
     stopped_early: bool         # True if a safety cap ended Execute, not the model
     report: str                 # Final markdown report
     citations: list[dict]       # Sources referenced by the report
