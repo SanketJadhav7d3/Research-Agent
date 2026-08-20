@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     # Default provider. Gemini's free tier lets the public demo run without the
     # visitor supplying a key of their own.
     llm_provider: str = "google_genai"
-    llm_model: str = "gemini-2.5-flash"
+    llm_model: str = "gemini-3.6-flash"
 
     # Provider keys. Only the default provider's key needs to be set; the others
     # are supplied per-request by users who bring their own.

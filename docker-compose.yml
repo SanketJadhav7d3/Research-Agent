@@ -2,7 +2,9 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8080:8080"
+      # Host port 8000 — 8080 is commonly taken (Jenkins, Tomcat, etc).
+      # The container still listens on 8080, so the frontend proxy is unaffected.
+      - "8000:8080"
     env_file: .env
     volumes:
       - ./backend:/app

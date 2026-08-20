@@ -18,7 +18,7 @@ SUPPORTED_PROVIDERS = {
 
 # Used when the caller names a provider but not a model.
 DEFAULT_MODELS = {
-    "google_genai": "gemini-2.5-flash",
+    "google_genai": "gemini-3.6-flash",
     "openai": "gpt-5.5",
     "anthropic": "claude-opus-5",
 }

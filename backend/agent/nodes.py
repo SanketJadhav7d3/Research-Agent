@@ -20,6 +20,24 @@ from agent.tools import ALL_TOOLS, TOOLS_BY_NAME
 log = logging.getLogger(__name__)
 
 
+def _text(response) -> str:
+    """Flatten a model response to plain text.
+
+    Newer models return content as a list of typed parts rather than a string;
+    interpolating that directly would put Python repr into the report.
+    """
+    content = response.content
+    if isinstance(content, str):
+        return content
+    parts = []
+    for block in content:
+        if isinstance(block, str):
+            parts.append(block)
+        elif isinstance(block, dict) and block.get("type") == "text":
+            parts.append(block.get("text", ""))
+    return "".join(parts)
+
+
 def _model(state: AgentState):
     """Model for this run, honouring any per-request provider override."""
     return get_model(
@@ -210,7 +228,7 @@ def synthesize(state: AgentState) -> dict:
         f"Sources:\n{numbered}"
     )
 
-    report = f"{response.content}\n\n## Sources\n\n{numbered}\n"
+    report = f"{_text(response)}\n\n## Sources\n\n{numbered}\n"
     emit(
         "report_ready",
         report=report,

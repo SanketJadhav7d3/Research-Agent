@@ -17,7 +17,7 @@ docker compose up --build
 ```
 
 - Frontend — http://localhost:3000 (green dot means it reached the backend)
-- Backend health — http://localhost:8080/health
+- Backend health — http://localhost:8000/health
 
 ## Layout
 
