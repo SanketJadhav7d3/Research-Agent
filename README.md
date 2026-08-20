@@ -6,23 +6,20 @@ findings are thin, and produces a cited report.
 
 See [RESEARCH_AGENT_SPEC.md](RESEARCH_AGENT_SPEC.md) for the full design.
 
-**Current status: Sprint 1 — scaffold.** Backend serves `/health`; the
-frontend calls it and shows the result. No agent yet.
-
 ## Run it locally
 
 ```bash
-cp .env.example .env    # keys can stay blank for Sprint 1
+cp .env.example .env    # add GOOGLE_API_KEY and TAVILY_API_KEY
 docker compose up --build
 ```
 
-- Frontend — http://localhost:3000 (green dot means it reached the backend)
+- Frontend — http://localhost:3000
 - Backend health — http://localhost:8000/health
 
 ## Layout
 
 ```
-backend/    FastAPI app (agent graph lands in Sprint 2)
+backend/    FastAPI app and the LangGraph agent
 frontend/   React + Vite, served by nginx, proxies /api to the backend
 ```
 
