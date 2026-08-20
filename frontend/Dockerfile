@@ -7,6 +7,13 @@ RUN npm run build
 
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Files in /etc/nginx/templates are env-substituted into /etc/nginx/conf.d
+# by the base image's entrypoint at container start.
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+
+# Defaults for local runs; Cloud Run overrides both.
+ENV PORT=8080
+ENV BACKEND_URL=http://backend:8080
+
 EXPOSE 8080
-CMD ["nginx", "-g", "daemon off;"]

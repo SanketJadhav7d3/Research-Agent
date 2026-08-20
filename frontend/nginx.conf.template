@@ -1,0 +1,36 @@
+server {
+    # Cloud Run injects PORT; the Dockerfile defaults it to 8080 for local runs.
+    listen ${PORT};
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # SPA: unknown paths fall through to index.html.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy API calls to the backend.
+    #   Compose:    BACKEND_URL=http://backend:8080  (private network)
+    #   Cloud Run:  BACKEND_URL=https://<backend>.run.app
+    # Substituted at container start, so this stays a static value — no
+    # runtime resolver needed.
+    location /api/ {
+        proxy_pass ${BACKEND_URL}/;
+        proxy_http_version 1.1;
+
+        # Cloud Run routes by Host header, so it must name the backend, not
+        # the frontend. $proxy_host is the host from proxy_pass above.
+        proxy_set_header Host $proxy_host;
+        proxy_ssl_server_name on;
+
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # SSE-ready for the streaming endpoint in a later sprint.
+        proxy_set_header Connection '';
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 300s;
+    }
+}
