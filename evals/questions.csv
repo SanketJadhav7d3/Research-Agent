@@ -1,0 +1,21 @@
+id,domain,question
+1,regulation,What are the key risks of the EU AI Act for LLM startups?
+2,finance,What happened to Silicon Valley Bank in 2023 and what were the regulatory consequences?
+3,business,Compare the revenue models of Anthropic OpenAI and Mistral
+4,research,What does recent research say about reducing hallucination in large language models?
+5,economics,What is the current inflation rate in Germany and what is driving it?
+6,technology,What are the main technical differences between RAG and fine-tuning for domain adaptation?
+7,policy,How does the US CHIPS Act aim to change semiconductor manufacturing and has it worked so far?
+8,finance,What caused the 2024 Japanese yen carry trade unwind and what were its effects?
+9,health,What is the current scientific consensus on the long-term effects of long COVID?
+10,energy,How much of Germany's electricity came from renewables in the last full year and how has that changed?
+11,technology,What are the main security risks of the Model Context Protocol and how are they mitigated?
+12,business,Why did Intel lose its manufacturing lead to TSMC?
+13,regulation,What obligations does the EU Digital Markets Act place on designated gatekeepers?
+14,research,What is the evidence that chain-of-thought prompting improves reasoning in LLMs?
+15,economics,What are the main arguments for and against a sovereign wealth fund for the United States?
+16,climate,What were the main outcomes of the most recent UN climate conference?
+17,technology,How do vector databases differ from traditional databases and when is each appropriate?
+18,finance,What are the main risks facing commercial real estate lenders in Europe?
+19,policy,What is the current state of US export controls on advanced AI chips to China?
+20,research,What are the leading explanations for why neural scaling laws hold?
