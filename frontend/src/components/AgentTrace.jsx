@@ -25,6 +25,8 @@ function buildRows(events) {
     } else if (e.name === 'tool_result') {
       const row = pending.find((r) => r.call.tool === e.tool && !r.result)
       if (row) row.result = e
+    } else if (e.name === 'gate') {
+      rows.push({ kind: 'gate', gate: e })
     } else if (e.name === 'error') {
       rows.push({ kind: 'error', message: e.message })
     }
@@ -53,6 +55,19 @@ export default function AgentTrace({ events, status }) {
             <div key={i} className="trace-node">
               <span className="dot" />
               {NODE_LABELS[row.node] ?? row.node}
+            </div>
+          )
+        }
+        if (row.kind === 'gate') {
+          const g = row.gate
+          const pct = Math.round((g.score ?? 0) * 100)
+          return (
+            <div key={i} className="trace-gate">
+              {g.decision === 'execute'
+                ? `↻ ${pct}% confidence — below ${Math.round(g.threshold * 100)}%, researching the gaps again`
+                : g.reason === 'max_iterations'
+                  ? `⚑ ${pct}% confidence — attempt limit reached, writing the report with its limitations stated`
+                  : `✓ ${pct}% confidence — enough to write the report`}
             </div>
           )
         }

@@ -10,7 +10,11 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
-from config import MAX_MODEL_TURNS_CAP, MAX_TOOL_CALLS_CAP
+from config import (
+    MAX_MODEL_TURNS_CAP,
+    MAX_TOOL_CALLS_PER_ROUND,
+    MAX_TOOL_CALLS_TOTAL,
+)
 from agent.events import emit
 from agent.llm import get_model
 from agent.schemas import ClarifiedGoal, Reflection, ResearchPlan
@@ -76,6 +80,42 @@ def plan(state: AgentState) -> dict:
     return {"plan": result.sub_questions}
 
 
+def _execute_brief(state: AgentState) -> str:
+    """The instruction for one round of research.
+
+    On the first round this is the plan. On a later round the agent has already
+    judged its own work, so the brief becomes the gaps it identified plus the
+    queries it has already tried — otherwise it tends to reissue the same
+    searches and learn nothing new.
+    """
+    goal = state["clarified_goal"]
+    gaps = state.get("gaps") or []
+
+    if state.get("iteration", 0) == 0 or not gaps:
+        return (
+            f"Research goal: {goal}\n\n"
+            "Sub-questions identified during planning:\n"
+            + "\n".join(f"- {q}" for q in state["plan"])
+        )
+
+    tried = [
+        str(v)
+        for c in state.get("tool_calls", [])
+        for v in (c.get("input") or {}).values()
+    ]
+    return (
+        f"Research goal: {goal}\n\n"
+        f"You already researched this and judged it incomplete "
+        f"(confidence {state.get('confidence', 0):.0%}). "
+        f"{state.get('confidence_reason', '')}\n\n"
+        "Fill these specific gaps:\n"
+        + "\n".join(f"- {g}" for g in gaps)
+        + "\n\nQueries you already tried — do not repeat them. Rephrase, "
+          "narrow, or approach from a different angle:\n"
+        + "\n".join(f"- {t}" for t in tried[-15:])
+    )
+
+
 def execute(state: AgentState) -> dict:
     """The free node — the model drives its own research.
 
@@ -99,16 +139,17 @@ def execute(state: AgentState) -> dict:
             "calling tools once you have enough evidence, and then briefly "
             "summarise what you found and what is still missing."
         ),
-        HumanMessage(
-            f"Research goal: {state['clarified_goal']}\n\n"
-            "Sub-questions identified during planning:\n"
-            + "\n".join(f"- {q}" for q in state["plan"])
-        ),
+        HumanMessage(_execute_brief(state)),
     ]
 
     tool_calls = list(state.get("tool_calls", []))
     findings = list(state.get("findings", []))
     stopped_early = False
+
+    # Budget for this round: the per-round allowance, or whatever remains of the
+    # overall ceiling, whichever is smaller.
+    calls_before = len(tool_calls)
+    budget = min(MAX_TOOL_CALLS_PER_ROUND, MAX_TOOL_CALLS_TOTAL - calls_before)
 
     for turn in range(MAX_MODEL_TURNS_CAP):
         response = model.invoke(messages)
@@ -119,7 +160,7 @@ def execute(state: AgentState) -> dict:
             break
 
         for call in response.tool_calls:
-            if len(tool_calls) >= MAX_TOOL_CALLS_CAP:
+            if len(tool_calls) - calls_before >= budget:
                 stopped_early = True
                 break
 
@@ -157,7 +198,7 @@ def execute(state: AgentState) -> dict:
             ))
 
         if stopped_early:
-            log.warning("tool call cap (%d) reached", MAX_TOOL_CALLS_CAP)
+            log.warning("round tool budget (%d) spent", budget)
             break
     else:
         stopped_early = True

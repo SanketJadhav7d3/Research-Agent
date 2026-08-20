@@ -158,3 +158,14 @@ button.ghost {
 }
 .markdown pre { background: var(--panel-2); padding: 12px; border-radius: 8px; overflow-x: auto; }
 .markdown hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+
+.round-tag { color: var(--accent); }
+.confidence-history {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px; font-size: 12px; color: var(--muted);
+}
+.trace-gate {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(124,108,245,0.10); border: 1px solid var(--accent);
+  border-radius: 8px; padding: 9px 12px; margin: 10px 0; font-size: 13px;
+}

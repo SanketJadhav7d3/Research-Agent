@@ -7,7 +7,7 @@ export function useAgentStream() {
   const [events, setEvents] = useState([])
   const [status, setStatus] = useState('idle')
   const [report, setReport] = useState(null)
-  const [confidence, setConfidence] = useState(null)
+  const [confidence, setConfidence] = useState([])
   const [error, setError] = useState(null)
   const abortRef = useRef(null)
 
@@ -18,7 +18,7 @@ export function useAgentStream() {
 
     setEvents([])
     setReport(null)
-    setConfidence(null)
+    setConfidence([])
     setError(null)
     setStatus('running')
 
@@ -34,7 +34,7 @@ export function useAgentStream() {
           signal: controller.signal,
           onEvent: (name, data) => {
             setEvents((prev) => [...prev, { name, ...data }])
-            if (name === 'confidence_check') setConfidence(data)
+            if (name === 'confidence_check') setConfidence((prev) => [...prev, data])
             if (name === 'report_ready') setReport(data)
             if (name === 'error') setError(data.message)
           },

@@ -21,7 +21,7 @@ export default function App() {
 
       {error && <div className="banner error">⚠ {error}</div>}
 
-      <ConfidenceBar confidence={confidence} />
+      <ConfidenceBar history={confidence} />
       <AgentTrace events={events} status={status} />
       <ReportViewer report={report} />
     </div>

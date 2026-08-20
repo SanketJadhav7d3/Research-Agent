@@ -11,7 +11,11 @@ PROJECT_ROOT = BACKEND_DIR.parent
 # a client request — the deployed demo runs on our own API key, so a caller must
 # not be able to ask for unbounded work.
 MAX_ITERATIONS_CAP = 3
-MAX_TOOL_CALLS_CAP = 12
+# Tool calls are budgeted per research round *and* overall. A single cumulative
+# cap starves later rounds: the first round spends most of it, leaving the
+# gap-filling rounds — the ones that need budget most — with almost none.
+MAX_TOOL_CALLS_PER_ROUND = 8
+MAX_TOOL_CALLS_TOTAL = 20
 MAX_MODEL_TURNS_CAP = 6
 
 
