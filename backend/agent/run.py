@@ -9,6 +9,12 @@ exercised.
 import logging
 import sys
 
+# Windows consoles default to cp1252, which cannot encode much of what appears
+# in real sources (accented author names, dashes, symbols). Reports are UTF-8.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 from config import MAX_ITERATIONS_CAP
 from agent.graph import graph
 

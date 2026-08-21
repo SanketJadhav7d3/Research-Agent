@@ -110,6 +110,23 @@ def plan(state: AgentState) -> dict:
     return {"plan": result.sub_questions}
 
 
+def _call_key(tool_name: str, args: dict) -> str:
+    """Identity of a tool call, for spotting repeats.
+
+    URLs are normalised so trivially different spellings of the same address
+    (trailing slash, arxiv's optional .pdf suffix) count as one fetch.
+    """
+    parts = []
+    for key in sorted(args):
+        value = str(args[key]).strip()
+        if value.startswith(("http://", "https://")):
+            value = value.rstrip("/")
+            if value.endswith(".pdf"):
+                value = value[:-4]
+        parts.append(f"{key}={value.lower()}")
+    return tool_name + "|" + "&".join(parts)
+
+
 def _execute_brief(state: AgentState) -> str:
     """The instruction for one round of research.
 
@@ -188,6 +205,11 @@ def execute(state: AgentState) -> dict:
     calls_before = len(tool_calls)
     budget = min(MAX_TOOL_CALLS_PER_ROUND, MAX_TOOL_CALLS_TOTAL - calls_before)
 
+    # Calls already made, including in earlier rounds of this run. Fetching the
+    # same document repeatedly spends budget and adds nothing.
+    seen_calls = {_call_key(c["tool"], c.get("input") or {}) for c in tool_calls}
+    seen_urls = {f.get("url") for f in findings if f.get("url")}
+
     for turn in range(MAX_MODEL_TURNS_CAP):
         response = model.invoke(messages)
         messages.append(response)
@@ -213,6 +235,20 @@ def execute(state: AgentState) -> dict:
                     tool_call_id=call["id"],
                 ))
                 continue
+
+            key = _call_key(call["name"], call["args"])
+            if key in seen_calls:
+                log.info("skipping repeat: %s(%s)", call["name"], call["args"])
+                emit("tool_skipped", tool=call["name"], input=call["args"],
+                     reason="already fetched in this run")
+                messages.append(ToolMessage(
+                    content="You already made this exact call in this run. Its "
+                            "results are above — use them rather than fetching "
+                            "again, or try a different query.",
+                    tool_call_id=call["id"],
+                ))
+                continue
+            seen_calls.add(key)
 
             log.info("tool: %s(%s)", call["name"], call["args"])
             # Emitted from this thread: the stream writer is not visible inside
@@ -256,7 +292,12 @@ def execute(state: AgentState) -> dict:
                     "input": call["args"],
                     "result_count": len(results),
                 })
-                findings.extend(results)
+                fresh = [
+                    r for r in results
+                    if not r.get("url") or r["url"] not in seen_urls
+                ]
+                seen_urls.update(r["url"] for r in fresh if r.get("url"))
+                findings.extend(fresh)
                 messages.append(ToolMessage(
                     content=json.dumps(results), tool_call_id=call["id"]
                 ))

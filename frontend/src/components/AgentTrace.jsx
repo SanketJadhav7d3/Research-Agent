@@ -25,6 +25,8 @@ function buildRows(events) {
     } else if (e.name === 'tool_result') {
       const row = pending.find((r) => r.call.tool === e.tool && !r.result)
       if (row) row.result = e
+    } else if (e.name === 'tool_skipped') {
+      rows.push({ kind: 'skipped', event: e })
     } else if (e.name === 'gate') {
       rows.push({ kind: 'gate', gate: e })
     } else if (e.name === 'error') {
@@ -55,6 +57,14 @@ export default function AgentTrace({ events, status }) {
             <div key={i} className="trace-node">
               <span className="dot" />
               {NODE_LABELS[row.node] ?? row.node}
+            </div>
+          )
+        }
+        if (row.kind === 'skipped') {
+          const v = Object.values(row.event.input ?? {})[0] ?? ''
+          return (
+            <div key={i} className="trace-skipped">
+              ⤾ skipped duplicate {row.event.tool} — {String(v).slice(0, 60)}
             </div>
           )
         }
