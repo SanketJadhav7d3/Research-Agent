@@ -24,4 +24,6 @@ RUN useradd --create-home --shell /usr/sbin/nologin --uid 10001 runner \
 USER runner
 
 EXPOSE 8080
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Shell form so $PORT expands. Cloud Run injects it and expects the container
+# to listen there; a hardcoded port works only while the two happen to agree.
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}
