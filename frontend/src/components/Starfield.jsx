@@ -1,15 +1,22 @@
 import { useEffect, useRef } from 'react'
 
 // Stars are stored in polar coordinates around the centre of the viewport, so
-// rotating the field is a matter of advancing one angle per star rather than
+// rotating the field is a matter of adding one shared angle rather than
 // running a matrix over every point.
 //
-// Depth does three things at once — nearer stars are bigger, brighter and
-// sweep faster — which is what makes a flat rotation read as a field with
-// volume rather than a spinning decal.
+// The rotation is rigid: every star advances by the same angle regardless of
+// its distance or depth, the way a spinning habitat turns. Varying the speed
+// by depth would be a parallax effect — the field would shear, and it would
+// read as drifting rather than as one structure under rotation.
+//
+// Depth is still there, but it only sets size and brightness.
 const DENSITY = 1 / 9000   // stars per square pixel
 const MAX_STARS = 320
-const BASE_SPEED = 0.000045 // radians per millisecond, at full depth
+
+// Radians per millisecond. One full revolution takes about six minutes —
+// slow enough that it never pulls the eye off the page, but the movement is
+// unmistakable if you watch a star near the edge for a moment.
+const ROTATION_SPEED = (Math.PI * 2) / 360_000
 
 const TWINKLE_SPEED = 0.0012
 
@@ -57,6 +64,10 @@ export default function Starfield({ enabled }) {
     let width = 0
     let height = 0
     let frame = null
+    // Total rotation of the field, in radians. Accumulated rather than derived
+    // from a start timestamp so that pausing on a hidden tab resumes from
+    // where it stopped instead of jumping forward.
+    let rotation = 0
     let last = null
 
     const resize = () => {
@@ -79,12 +90,14 @@ export default function Starfield({ enabled }) {
       const cy = height / 2
       ctx.clearRect(0, 0, width, height)
 
+      // One angle for the entire field, advanced once per frame. This is what
+      // makes it turn as a single body.
+      if (!stillness.matches) rotation += ROTATION_SPEED * elapsed
+
       for (const star of stars) {
-        if (!stillness.matches) {
-          star.angle += BASE_SPEED * (0.25 + star.depth) * elapsed
-        }
-        const x = cx + Math.cos(star.angle) * star.radius
-        const y = cy + Math.sin(star.angle) * star.radius
+        const angle = star.angle + rotation
+        const x = cx + Math.cos(angle) * star.radius
+        const y = cy + Math.sin(angle) * star.radius
 
         // Skip the arithmetic for stars swung outside the viewport.
         if (x < -4 || x > width + 4 || y < -4 || y > height + 4) continue
