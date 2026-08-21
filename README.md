@@ -4,8 +4,6 @@ An agentic research assistant: give it a research goal and it plans, selects
 tools, searches, reads sources, scores its own confidence, loops when the
 findings are thin, and produces a cited report.
 
-See [RESEARCH_AGENT_SPEC.md](RESEARCH_AGENT_SPEC.md) for the full design.
-
 ## Run it locally
 
 ```bash

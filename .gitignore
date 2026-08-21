@@ -15,3 +15,7 @@ dist/
 .DS_Store
 .vscode/
 .idea/
+
+# Working documents — kept locally, not published
+PROGRESS.md
+RESEARCH_AGENT_SPEC.md
