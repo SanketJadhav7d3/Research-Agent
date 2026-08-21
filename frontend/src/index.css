@@ -1,44 +1,37 @@
 /* ---------------------------------------------------------------------------
-   Modern interface, historical palette, dark ground.
+   Modern dark chat interface.
 
-   Layout, type and interaction follow current conventions — Inter, generous
-   spacing, rounded cards, soft shadows. The colour is where the Victorian
-   natural-history reference lives: a warm brown-black ground rather than a
-   neutral or blue one, aged-paper cream for text rather than white, and
-   accents drawn from the pigments of the period — madder lake, terre verte,
-   yellow ochre — lifted in value so they read on a dark background.
+   Neutral ground, a single indigo accent, generous type. Nothing decorative —
+   the visual weight goes to the report text, which is what people actually
+   come here to read.
 --------------------------------------------------------------------------- */
 
 :root {
-  /* Warm near-black — brown-toned rather than blue or neutral, so the paper
-     reference survives the inversion. */
-  --bg: #16120e;
-  --bg-tint: #1d1813;
-  --surface: #1e1913;
-  --surface-2: #272119;
+  --bg: #0e0f13;
+  --bg-tint: #14161b;
+  --surface: #16181d;
+  --surface-2: #1e2127;
 
-  /* Aged-paper cream as the text colour, not white */
-  --text: #ece3d3;
-  --text-dim: #a89a85;
-  --text-faint: #7b6f5e;
+  --text: #e8eaed;
+  --text-dim: #a1a7b3;
+  --text-faint: #6e7480;
 
-  --border: #332b22;
-  --border-strong: #483d30;
+  --border: #24272e;
+  --border-strong: #343841;
 
-  /* Period pigments, lifted for legibility on a dark ground */
-  --accent: #cf6a52;         /* madder lake */
-  --accent-hover: #dd7a61;
-  --accent-soft: rgba(207, 106, 82, 0.13);
-  --accent-ring: rgba(207, 106, 82, 0.28);
+  --accent: #7c8cff;
+  --accent-hover: #93a0ff;
+  --accent-soft: rgba(124, 140, 255, 0.13);
+  --accent-ring: rgba(124, 140, 255, 0.3);
 
-  --green: #8fa079;          /* terre verte */
-  --ochre: #d4a24e;
-  --prussian: #6d8fa3;
+  --green: #63c99a;
+  --ochre: #e0b155;
+  --red: #f08e8e;
 
   --radius: 14px;
-  --radius-sm: 9px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.36), 0 10px 30px rgba(0, 0, 0, 0.3);
+  --radius-sm: 10px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.32);
 }
 
 * { box-sizing: border-box; }
@@ -49,38 +42,38 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 15px;
-  line-height: 1.65;
+  font-size: 17px;
+  line-height: 1.68;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Two very soft washes so the ground has depth rather than reading as flat. */
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(900px 520px at 8% -6%, rgba(212, 162, 78, 0.09), transparent 62%),
-    radial-gradient(760px 480px at 96% 2%, rgba(207, 106, 82, 0.07), transparent 60%);
+    radial-gradient(900px 520px at 12% -8%, rgba(124, 140, 255, 0.09), transparent 64%),
+    radial-gradient(700px 460px at 96% 0%, rgba(99, 201, 154, 0.045), transparent 60%);
 }
 
 .page {
-  max-width: 860px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 64px 22px 130px;
 }
 
 /* --- header --------------------------------------------------------------- */
-.header { margin-bottom: 32px; }
+.header { margin-bottom: 34px; }
 
 .header h1 {
-  margin: 0 0 10px;
-  font-size: 38px;
+  margin: 0 0 11px;
+  font-size: 42px;
   line-height: 1.12;
   font-weight: 700;
-  letter-spacing: -0.028em;
+  letter-spacing: -0.03em;
   color: var(--text);
 }
 
@@ -88,11 +81,11 @@ body::before {
   margin: 0;
   color: var(--text-dim);
   max-width: 58ch;
-  font-size: 16px;
+  font-size: 17.5px;
 }
 
 .section-title {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--text-faint);
@@ -113,10 +106,10 @@ body::before {
 .input-card, .confidence, .report { box-shadow: var(--shadow); }
 
 /* --- composer ------------------------------------------------------------- */
-.input-card { padding: 16px; transition: border-color .2s, box-shadow .2s; }
+.input-card { padding: 17px; transition: border-color .2s, box-shadow .2s; }
 .input-card:focus-within {
   border-color: var(--border-strong);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 12px 34px rgba(0, 0, 0, 0.34);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.44), 0 14px 38px rgba(0, 0, 0, 0.36);
 }
 
 textarea, select, input[type="password"] {
@@ -127,7 +120,7 @@ textarea, select, input[type="password"] {
   border-radius: var(--radius-sm);
   padding: 12px 14px;
   font: inherit;
-  font-size: 15.5px;
+  font-size: 17px;
   resize: vertical;
   transition: border-color .18s, box-shadow .18s;
 }
@@ -140,40 +133,40 @@ select:focus, input:focus {
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
-.examples { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 14px; }
+.examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 15px; }
 
 .chip {
   background: var(--surface-2);
   color: var(--text-dim);
   border: 1px solid transparent;
   border-radius: 999px;
-  padding: 5px 13px;
-  font-size: 13px;
+  padding: 6px 14px;
+  font-size: 14px;
   cursor: pointer;
   transition: all .16s;
 }
 .chip:hover:not(:disabled) {
-  color: var(--accent);
+  color: var(--accent-hover);
   background: var(--accent-soft);
   border-color: var(--accent-ring);
 }
 
 .controls {
   display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-  padding-top: 12px; border-top: 1px solid var(--border);
+  padding-top: 13px; border-top: 1px solid var(--border);
 }
-.controls select { width: auto; flex: 0 1 auto; cursor: pointer; font-size: 14px; padding: 8px 12px; }
-.controls input[type="password"] { flex: 1 1 200px; font-size: 14px; padding: 8px 12px; }
+.controls select { width: auto; flex: 0 1 auto; cursor: pointer; font-size: 15px; padding: 9px 12px; }
+.controls input[type="password"] { flex: 1 1 200px; font-size: 15px; padding: 9px 12px; }
 
 button {
   background: var(--accent);
-  color: #fff;
+  color: #0e0f13;
   border: 0;
   border-radius: var(--radius-sm);
-  padding: 10px 20px;
+  padding: 10px 22px;
   font: inherit;
-  font-size: 14.5px;
-  font-weight: 600;
+  font-size: 15.5px;
+  font-weight: 650;
   cursor: pointer;
   margin-left: auto;
   transition: background .16s, transform .12s, opacity .16s;
@@ -188,30 +181,30 @@ button.ghost {
   border: 1px solid var(--border);
   color: var(--text-dim);
   font-weight: 500;
-  font-size: 12.5px;
-  padding: 5px 11px;
+  font-size: 13.5px;
+  padding: 6px 12px;
   margin-left: 0;
 }
 button.ghost:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
 
-.hint { font-size: 12.5px; color: var(--text-faint); margin: 10px 0 0; }
+.hint { font-size: 13.5px; color: var(--text-faint); margin: 11px 0 0; }
 
 /* --- banners -------------------------------------------------------------- */
-.banner { padding: 12px 15px; border-radius: var(--radius-sm); margin-top: 16px; font-size: 14px; }
+.banner { padding: 13px 16px; border-radius: var(--radius-sm); margin-top: 16px; font-size: 15px; }
 .banner.error {
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-ring);
-  color: var(--accent-hover);
+  background: rgba(240, 116, 116, 0.1);
+  border: 1px solid rgba(240, 116, 116, 0.28);
+  color: #f08e8e;
 }
 
 /* --- confidence ----------------------------------------------------------- */
-.confidence { padding: 18px 20px; margin-top: 24px; }
+.confidence { padding: 19px 21px; margin-top: 24px; }
 
 .confidence-head {
   display: flex; justify-content: space-between; align-items: baseline;
-  font-size: 13px; color: var(--text-dim); margin-bottom: 10px;
+  font-size: 14px; color: var(--text-dim); margin-bottom: 11px;
 }
-.confidence-head strong { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.confidence-head strong { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
 .round-tag { color: var(--accent); }
 
 .confidence-track {
@@ -228,16 +221,16 @@ button.ghost:hover { background: var(--surface-2); color: var(--text); border-co
 
 .confidence-history {
   display: flex; gap: 10px; flex-wrap: wrap;
-  margin-top: 11px; font-size: 12.5px; color: var(--text-faint);
+  margin-top: 12px; font-size: 13.5px; color: var(--text-faint);
 }
-.confidence-reason { font-size: 14px; color: var(--text-dim); margin: 12px 0 0; }
-.gaps { margin: 9px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--text-dim); }
-.gaps li { margin-bottom: 3px; }
+.confidence-reason { font-size: 15px; color: var(--text-dim); margin: 12px 0 0; }
+.gaps { margin: 10px 0 0; padding-left: 19px; font-size: 15px; color: var(--text-dim); }
+.gaps li { margin-bottom: 4px; }
 
 /* --- trace ---------------------------------------------------------------- */
 .trace-node {
   display: flex; align-items: center; gap: 11px;
-  font-size: 14.5px; font-weight: 600; margin: 22px 0 9px;
+  font-size: 16px; font-weight: 650; margin: 24px 0 10px;
 }
 .dot {
   width: 8px; height: 8px; border-radius: 50%;
@@ -256,146 +249,148 @@ button.ghost:hover { background: var(--surface-2); color: var(--text); border-co
 .tool-head {
   display: flex; align-items: center; gap: 10px; width: 100%;
   background: transparent; border: 0; color: var(--text);
-  padding: 11px 13px; margin: 0; font-weight: 400; text-align: left;
-  cursor: pointer; font-size: 14px;
+  padding: 12px 14px; margin: 0; font-weight: 400; text-align: left;
+  cursor: pointer; font-size: 15px;
 }
 .tool-head:hover { background: transparent; transform: none; }
-.tool-icon { flex: none; font-size: 14px; }
+.tool-icon { flex: none; font-size: 15px; }
 .tool-name {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 11.5px; color: var(--accent);
-  background: var(--accent-soft); padding: 2px 7px; border-radius: 5px; flex: none;
+  font-size: 12.5px; color: var(--accent);
+  background: var(--accent-soft); padding: 3px 8px; border-radius: 6px; flex: none;
 }
 .tool-query {
   color: var(--text-dim); overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; flex: 1 1 auto; min-width: 0;
 }
-.tool-count { color: var(--text-faint); font-size: 12px; flex: none; }
-.tool-chevron { color: var(--text-faint); flex: none; font-size: 11px; }
+.tool-count { color: var(--text-faint); font-size: 13px; flex: none; }
+.tool-chevron { color: var(--text-faint); flex: none; font-size: 12px; }
 
-.tool-body { padding: 2px 13px 13px 40px; border-top: 1px solid var(--border); }
-.sources { margin: 10px 0 0; padding-left: 16px; font-size: 13.5px; }
-.sources li { margin-bottom: 4px; }
+.tool-body { padding: 2px 14px 14px 42px; border-top: 1px solid var(--border); }
+.sources { margin: 10px 0 0; padding-left: 17px; font-size: 15px; }
+.sources li { margin-bottom: 5px; }
 .sources a { color: var(--accent); text-decoration: none; }
 .sources a:hover { text-decoration: underline; }
-.muted { color: var(--text-faint); font-size: 13px; }
+.muted { color: var(--text-faint); font-size: 14px; }
 
 .trace-error {
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-ring);
+  background: rgba(240, 116, 116, 0.1);
+  border: 1px solid rgba(240, 116, 116, 0.26);
   border-radius: var(--radius-sm);
-  padding: 10px 13px; font-size: 13.5px; margin: 8px 0; color: var(--accent-hover);
+  padding: 11px 14px; font-size: 14.5px; margin: 8px 0; color: #f08e8e;
 }
 
 .trace-gate {
   display: flex; align-items: center; gap: 9px;
-  background: rgba(111, 128, 96, 0.08);
-  border: 1px solid rgba(111, 128, 96, 0.25);
+  background: rgba(99, 201, 154, 0.08);
+  border: 1px solid rgba(99, 201, 154, 0.24);
   border-radius: var(--radius-sm);
-  padding: 10px 13px; margin: 11px 0; font-size: 13.5px; color: var(--text-dim);
+  padding: 11px 14px; margin: 12px 0; font-size: 14.5px; color: var(--text-dim);
 }
 
 .trace-skipped {
-  color: var(--text-faint); font-size: 12.5px;
+  color: var(--text-faint); font-size: 13.5px;
   margin: 5px 0 5px 20px; font-style: italic;
 }
 
 .trace-working {
   display: flex; align-items: center; gap: 9px;
-  color: var(--text-faint); font-size: 13px; margin: 13px 0 0 20px;
+  color: var(--text-faint); font-size: 14px; margin: 14px 0 0 20px;
 }
 .spinner {
-  width: 12px; height: 12px; border-radius: 50%;
+  width: 13px; height: 13px; border-radius: 50%;
   border: 2px solid var(--border); border-top-color: var(--accent);
   animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* --- report --------------------------------------------------------------- */
-.report { padding: 8px 26px 26px; margin-top: 30px; }
+.report { padding: 8px 28px 28px; margin-top: 30px; }
 
 .report-head {
   display: flex; justify-content: space-between; align-items: center;
   flex-wrap: wrap; gap: 10px;
-  padding: 14px 0; border-bottom: 1px solid var(--border);
+  padding: 15px 0; border-bottom: 1px solid var(--border);
 }
-.report-meta { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-faint); }
+.report-meta { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text-faint); }
 
-.markdown { max-width: 70ch; padding-top: 8px; }
-.markdown h1 { font-size: 25px; font-weight: 700; margin: 18px 0 14px; letter-spacing: -0.022em; }
+.markdown { max-width: 68ch; padding-top: 10px; font-size: 17.5px; line-height: 1.72; }
+.markdown h1 { font-size: 29px; font-weight: 700; margin: 20px 0 15px; letter-spacing: -0.024em; }
 .markdown h2 {
-  font-size: 18px; font-weight: 650; margin: 32px 0 11px;
-  padding-bottom: 7px; border-bottom: 1px solid var(--border);
-  letter-spacing: -0.012em;
+  font-size: 21px; font-weight: 650; margin: 34px 0 12px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  letter-spacing: -0.014em;
 }
-.markdown h3 { font-size: 15.5px; font-weight: 650; margin: 24px 0 7px; }
-.markdown p { margin: 0 0 15px; }
-.markdown ul, .markdown ol { margin: 0 0 15px; padding-left: 22px; }
-.markdown li { margin-bottom: 6px; }
+.markdown h3 { font-size: 18px; font-weight: 650; margin: 26px 0 8px; }
+.markdown p { margin: 0 0 16px; }
+.markdown ul, .markdown ol { margin: 0 0 16px; padding-left: 23px; }
+.markdown li { margin-bottom: 7px; }
 .markdown li::marker { color: var(--text-faint); }
-.markdown strong { font-weight: 650; color: #fbf5e9; }
+.markdown strong { font-weight: 650; color: #ffffff; }
 .markdown a { color: var(--accent); word-break: break-word; }
 
 .markdown blockquote {
-  margin: 0 0 15px; padding: 3px 0 3px 15px;
+  margin: 0 0 16px; padding: 3px 0 3px 16px;
   border-left: 3px solid var(--border-strong); color: var(--text-dim);
 }
 .markdown code {
   background: var(--surface-2); padding: 2px 6px; border-radius: 5px;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 14.5px;
 }
 .markdown pre {
   background: var(--surface-2); border: 1px solid var(--border);
-  padding: 14px; border-radius: var(--radius-sm); overflow-x: auto;
+  padding: 15px; border-radius: var(--radius-sm); overflow-x: auto;
 }
 .markdown pre code { background: none; padding: 0; }
-.markdown hr { border: 0; border-top: 1px solid var(--border); margin: 26px 0; }
+.markdown hr { border: 0; border-top: 1px solid var(--border); margin: 28px 0; }
 
 .markdown table {
   border-collapse: separate; border-spacing: 0; width: 100%;
-  margin: 0 0 18px; font-size: 13.5px;
+  margin: 0 0 18px; font-size: 15px;
   border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
 }
-.markdown th, .markdown td { padding: 9px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+.markdown th, .markdown td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
 .markdown tr:last-child td { border-bottom: 0; }
-.markdown th { background: var(--surface-2); font-weight: 650; font-size: 12.5px; }
-.markdown tbody tr:nth-child(even) { background: rgba(255, 245, 225, 0.022); }
+.markdown th { background: var(--surface-2); font-weight: 650; font-size: 14px; }
+.markdown tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.022); }
 
 /* --- citations ------------------------------------------------------------ */
 .cite-ref {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 18px; height: 18px; padding: 0 5px; margin: 0 1.5px;
+  min-width: 19px; height: 19px; padding: 0 5px; margin: 0 2px;
   background: var(--accent-soft); color: var(--accent);
   border: 1px solid var(--accent-ring); border-radius: 5px;
-  font-size: 10.5px; font-weight: 650; line-height: 1;
+  font-size: 11.5px; font-weight: 650; line-height: 1;
   vertical-align: 2px; cursor: pointer; text-decoration: none;
   transition: all .15s;
 }
-.cite-ref:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cite-ref:hover { background: var(--accent); color: #0e0f13; border-color: var(--accent); }
 
 .sources-title { margin-top: 34px; }
 .citations { list-style: none; margin: 0; padding: 0; }
 .citation {
-  display: flex; gap: 11px; align-items: baseline;
-  padding: 9px 11px; border-radius: var(--radius-sm);
+  display: flex; gap: 12px; align-items: baseline;
+  padding: 10px 12px; border-radius: var(--radius-sm);
   border: 1px solid transparent; transition: background .3s, border-color .3s;
 }
 .citation:hover { background: var(--surface-2); }
 .citation.active { background: var(--accent-soft); border-color: var(--accent-ring); }
 .cite-num {
-  flex: none; min-width: 20px; color: var(--text-faint);
-  font-size: 12px; font-variant-numeric: tabular-nums;
+  flex: none; min-width: 21px; color: var(--text-faint);
+  font-size: 13px; font-variant-numeric: tabular-nums;
 }
 .cite-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.cite-body a { color: var(--text); text-decoration: none; font-size: 14px; overflow: hidden; text-overflow: ellipsis; }
+.cite-body a { color: var(--text); text-decoration: none; font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; }
 .cite-body a:hover { color: var(--accent); text-decoration: underline; }
-.cite-host { color: var(--text-faint); font-size: 11.5px; }
+.cite-host { color: var(--text-faint); font-size: 12.5px; }
 
 /* --- small screens -------------------------------------------------------- */
 @media (max-width: 640px) {
   .page { padding: 40px 16px 90px; }
-  .header h1 { font-size: 28px; }
+  .header h1 { font-size: 30px; }
+  .header p { font-size: 16px; }
   .report { padding: 6px 16px 20px; }
+  .markdown { font-size: 16.5px; }
   .tool-card, .trace-skipped, .trace-working { margin-left: 0; }
   .controls button { width: 100%; margin-left: 0; }
 }

@@ -5,9 +5,9 @@ export default function ConfidenceBar({ history }) {
 
   const latest = history[history.length - 1]
   const pct = Math.round((latest.score ?? 0) * 100)
-  // terre verte / yellow ochre / madder lake
+  // green above the gate threshold, amber mid, red when the evidence is thin
   const colour =
-    pct >= 75 ? 'var(--terre-verte)' : pct >= 45 ? 'var(--ochre)' : 'var(--madder)'
+    pct >= 75 ? 'var(--green)' : pct >= 45 ? 'var(--ochre)' : 'var(--red)'
 
   return (
     <div className="confidence">
