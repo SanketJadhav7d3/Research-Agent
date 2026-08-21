@@ -2,11 +2,19 @@ import { useEffect, useState } from 'react'
 
 const KEY = 'starfield'
 
-// On by default. Only a stored "off" turns it off, so a first-time visitor
-// always sees the effect and anyone who switched it off keeps that choice.
+// On by default, except for someone whose OS asks for reduced motion — they
+// get it off, and can switch it on if they want it.
+//
+// The effect used to honour that preference by freezing the rotation while
+// still drawing the field, which is worse than either option: anyone with
+// Windows' animation effects switched off saw a starfield that simply never
+// moved, with no indication why. An explicit toggle is the better answer —
+// the OS preference picks the default, the user's own choice overrides it.
 function initial() {
   try {
-    return window.localStorage.getItem(KEY) !== 'off'
+    const stored = window.localStorage.getItem(KEY)
+    if (stored) return stored === 'on'
+    return !window.matchMedia('(prefers-reduced-motion: reduce)').matches
   } catch {
     // Private mode and some embedded browsers throw on access.
     return true

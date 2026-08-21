@@ -1,29 +1,44 @@
 import { useEffect, useRef } from 'react'
 
-// Stars are stored in polar coordinates around the centre of the viewport, so
-// rotating the field is a matter of adding one shared angle rather than
-// running a matrix over every point.
-//
-// The rotation is rigid: every star advances by the same angle regardless of
-// its distance or depth, the way a spinning habitat turns. Varying the speed
-// by depth would be a parallax effect — the field would shear, and it would
-// read as drifting rather than as one structure under rotation.
-//
-// Depth is still there, but it only sets size and brightness.
-const DENSITY = 1 / 9000   // stars per square pixel
-const MAX_STARS = 320
+/* Rotating starfield with occasional shooting stars.
+ *
+ * Stars live in polar coordinates around the centre of the viewport, so
+ * rotating the field means adding one shared angle rather than transforming
+ * every point.
+ *
+ * The rotation is rigid — every star advances by the same angle regardless of
+ * its distance. Giving each star its own speed (as most versions of this
+ * effect do) is parallax: the field shears, and it reads as drifting rather
+ * than as one structure turning.
+ *
+ * Two details do most of the work in making the motion legible:
+ *
+ *   The field extends to the full diagonal, not half of it. Stars therefore
+ *   swing in and out of the viewport instead of all staying on screen, and
+ *   arriving stars are a far stronger motion cue than one sliding across.
+ *
+ *   Flicker is deep (0.45 to 1.0), not a gentle pulse. On a field this sparse
+ *   it is the flicker that registers first and makes the whole thing feel
+ *   alive rather than printed.
+ */
 
-// Radians per millisecond. One full revolution takes two minutes —
-// slow enough that it never pulls the eye off the page, but plainly visible:
-// a star near the edge of a wide window moves about 25px per second.
-const ROTATION_SPEED = (Math.PI * 2) / 120_000
+const DENSITY = 1 / 5200    // stars per square pixel
+const MAX_STARS = 420
 
-const TWINKLE_SPEED = 0.0012
+// Radians per millisecond. One full revolution takes about 2.5 minutes.
+const ROTATION_SPEED = (Math.PI * 2) / 150_000
+
+const FLICKER_SPEED = 0.0015
+
+// Shooting stars: rare, one at a time, gone in under a second.
+const SHOOTING_CHANCE_PER_SECOND = 0.11
+const SHOOTING_SPEED = 0.55        // px per millisecond
+const SHOOTING_TRAIL = 120         // px
 
 function createStars(width, height) {
-  // The field has to cover the corners even while rotating, so its radius is
-  // the diagonal, not the width.
-  const maxRadius = Math.hypot(width, height) / 2
+  // Full diagonal, so the field runs past the edges of the viewport and stars
+  // rotate into view rather than merely across it.
+  const maxRadius = Math.hypot(width, height)
   const count = Math.min(MAX_STARS, Math.round(width * height * DENSITY))
 
   return Array.from({ length: count }, () => {
@@ -33,18 +48,32 @@ function createStars(width, height) {
       // bunch up around the centre.
       radius: Math.sqrt(Math.random()) * maxRadius,
       angle: Math.random() * Math.PI * 2,
-      depth,
-      size: 0.4 + depth * 1.3,
-      alpha: 0.18 + depth * 0.5,
+      size: 0.5 + depth * 1.2,
+      alpha: 0.35 + depth * 0.5,
       // Phase offset so they do not all pulse in unison.
       phase: Math.random() * Math.PI * 2,
       // A few stars pick up a faint colour cast; a field of pure white reads
       // as noise rather than sky.
       hue: Math.random() < 0.22
-        ? (Math.random() < 0.5 ? '124, 140, 255' : '224, 177, 85')
+        ? (Math.random() < 0.5 ? '150, 175, 255' : '232, 197, 131')
         : '255, 255, 255',
     }
   })
+}
+
+function spawnShootingStar(width, height) {
+  // Enter from the top edge, travelling down and across. Either direction, so
+  // it does not become a metronome.
+  const leftToRight = Math.random() < 0.5
+  const angle = (Math.random() * 0.35 + 0.15) * Math.PI // 27deg to 63deg
+  return {
+    x: leftToRight ? Math.random() * width * 0.5 : width - Math.random() * width * 0.5,
+    y: Math.random() * height * 0.4,
+    vx: Math.cos(angle) * SHOOTING_SPEED * (leftToRight ? 1 : -1),
+    vy: Math.sin(angle) * SHOOTING_SPEED,
+    life: 0,
+    span: 700 + Math.random() * 500,  // ms
+  }
 }
 
 export default function Starfield({ enabled }) {
@@ -57,10 +86,8 @@ export default function Starfield({ enabled }) {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
 
-    // Someone who has asked their OS for less motion gets the field without
-    // the rotation, rather than nothing at all.
-    const stillness = window.matchMedia('(prefers-reduced-motion: reduce)')
     let stars = []
+    let shooting = null
     let width = 0
     let height = 0
     let frame = null
@@ -82,7 +109,32 @@ export default function Starfield({ enabled }) {
       stars = createStars(width, height)
     }
 
+    const drawShootingStar = () => {
+      const { x, y, vx, vy, life, span } = shooting
+      // Fade in over the first fifth of its life, out over the rest.
+      const t = life / span
+      const fade = t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8
+
+      const len = Math.hypot(vx, vy)
+      const tailX = x - (vx / len) * SHOOTING_TRAIL
+      const tailY = y - (vy / len) * SHOOTING_TRAIL
+
+      const gradient = ctx.createLinearGradient(x, y, tailX, tailY)
+      gradient.addColorStop(0, `rgba(255, 255, 255, ${0.85 * fade})`)
+      gradient.addColorStop(0.35, `rgba(180, 200, 255, ${0.3 * fade})`)
+      gradient.addColorStop(1, 'rgba(180, 200, 255, 0)')
+
+      ctx.strokeStyle = gradient
+      ctx.lineWidth = 1.6
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.lineTo(tailX, tailY)
+      ctx.stroke()
+    }
+
     const draw = (now) => {
+      // Clamped so a stutter or a resumed tab cannot produce a lurch.
       const elapsed = last === null ? 0 : Math.min(now - last, 100)
       last = now
 
@@ -92,7 +144,7 @@ export default function Starfield({ enabled }) {
 
       // One angle for the entire field, advanced once per frame. This is what
       // makes it turn as a single body.
-      if (!stillness.matches) rotation += ROTATION_SPEED * elapsed
+      rotation += ROTATION_SPEED * elapsed
 
       for (const star of stars) {
         const angle = star.angle + rotation
@@ -102,11 +154,21 @@ export default function Starfield({ enabled }) {
         // Skip the arithmetic for stars swung outside the viewport.
         if (x < -4 || x > width + 4 || y < -4 || y > height + 4) continue
 
-        const twinkle = 0.75 + 0.25 * Math.sin(now * TWINKLE_SPEED + star.phase)
-        ctx.fillStyle = `rgba(${star.hue}, ${star.alpha * twinkle})`
+        const flicker = 0.45 + Math.abs(Math.sin(now * FLICKER_SPEED + star.phase)) * 0.55
+        ctx.fillStyle = `rgba(${star.hue}, ${star.alpha * flicker})`
         ctx.beginPath()
         ctx.arc(x, y, star.size, 0, Math.PI * 2)
         ctx.fill()
+      }
+
+      if (shooting) {
+        shooting.x += shooting.vx * elapsed
+        shooting.y += shooting.vy * elapsed
+        shooting.life += elapsed
+        if (shooting.life >= shooting.span) shooting = null
+        else drawShootingStar()
+      } else if (Math.random() < (SHOOTING_CHANCE_PER_SECOND * elapsed) / 1000) {
+        shooting = spawnShootingStar(width, height)
       }
 
       frame = requestAnimationFrame(draw)
