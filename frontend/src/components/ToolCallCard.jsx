@@ -1,12 +1,11 @@
 import { useState } from 'react'
 
-// Printer's ornaments rather than emoji, which would break the period feel.
 const MARKS = {
-  web_search: '❋',
-  news_search: '❡',
-  read_page: '❧',
-  read_pdf: '☞',
-  market_data: '§',
+  web_search: '🔍',
+  news_search: '📰',
+  read_page: '📄',
+  read_pdf: '📕',
+  market_data: '📈',
 }
 
 // One tool call plus its result, collapsed by default.
@@ -17,7 +16,7 @@ export default function ToolCallCard({ call, result }) {
   return (
     <div className="tool-card">
       <button className="tool-head" onClick={() => setOpen((o) => !o)}>
-        <span className="tool-icon">{MARKS[call.tool] ?? '•'}</span>
+        <span className="tool-icon">{MARKS[call.tool] ?? '🔧'}</span>
         <span className="tool-name">{call.tool}</span>
         <span className="tool-query">{query}</span>
         <span className="tool-count">

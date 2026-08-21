@@ -13,7 +13,7 @@ export default function ConfidenceBar({ history }) {
     <div className="confidence">
       <div className="confidence-head">
         <span>
-          Confidence
+          Agent confidence
           {history.length > 1 && (
             <span className="round-tag"> · round {history.length}</span>
           )}

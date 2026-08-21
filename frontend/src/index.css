@@ -1,39 +1,42 @@
 /* ---------------------------------------------------------------------------
-   Victorian natural-history plate.
+   Modern interface, historical palette.
 
-   Palette taken from period botanical plates: aged rag paper, iron-gall ink
-   (which oxidises brown, never true black), and the pigments a 19th-century
-   colourist actually had to hand — madder lake, yellow ochre, terre verte,
-   Prussian blue. Typography follows the era's scientific printing: Baskerville
-   for display, Garamond for text, letterspaced small capitals for labels.
+   Layout, type and interaction follow current conventions — Inter, generous
+   spacing, rounded cards, soft shadows. The colour is where the Victorian
+   natural-history reference lives: warm rag paper instead of white, ink that
+   is browned rather than black, and accents drawn from the pigments of the
+   period — madder lake, terre verte, yellow ochre, Prussian blue.
 --------------------------------------------------------------------------- */
 
 :root {
-  /* Paper */
-  --paper: #f2e8d8;
-  --paper-lit: #f7f0e3;
-  --paper-shade: #e6d9c2;
-  --paper-deep: #dccbb0;
+  /* Paper, warmed */
+  --bg: #f6f1e7;
+  --bg-tint: #efe7d8;
+  --surface: #fdfbf6;
+  --surface-2: #f4eee2;
 
-  /* Iron-gall ink, browned with age */
-  --ink: #2e2419;
-  --ink-soft: #574636;
-  --ink-faint: #857055;
+  /* Browned ink rather than black — the single biggest period cue */
+  --text: #2c2721;
+  --text-dim: #6b6156;
+  --text-faint: #988d7e;
 
-  /* Pigments */
-  --madder: #8c3b2e;   /* madder lake — headings, plate numbers, references */
-  --umber: #705c4a;    /* burnt umber — rules and borders */
-  --sepia: #8b6a4f;
-  --tan: #c39a6b;
-  --terre-verte: #6b7a5a;
+  --border: #e2d8c6;
+  --border-strong: #d0c3ac;
+
+  /* Period pigments */
+  --accent: #a04a3a;         /* madder lake */
+  --accent-hover: #8c3d2f;
+  --accent-soft: rgba(160, 74, 58, 0.09);
+  --accent-ring: rgba(160, 74, 58, 0.16);
+
+  --green: #6f8060;          /* terre verte */
   --ochre: #b8873b;
   --prussian: #2f4858;
 
-  --rule: rgba(112, 92, 74, 0.34);
-  --rule-soft: rgba(112, 92, 74, 0.18);
-
-  --radius: 2px;
-  --shadow: 0 1px 2px rgba(46, 36, 25, 0.09), 0 10px 26px rgba(46, 36, 25, 0.07);
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow-sm: 0 1px 2px rgba(44, 39, 33, 0.05);
+  --shadow: 0 1px 3px rgba(44, 39, 33, 0.06), 0 8px 24px rgba(44, 39, 33, 0.05);
 }
 
 * { box-sizing: border-box; }
@@ -41,489 +44,356 @@ html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
-  color: var(--ink);
-  background: var(--paper);
-  font-family: "EB Garamond", Garamond, Georgia, serif;
-  font-size: 18px;
-  line-height: 1.62;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Paper: a warm vignette, uneven tone, and faint foxing — all drawn in CSS so
-   no image has to load. */
+/* Two very soft washes so the page reads as paper rather than flat cream. */
 body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  background:
-    radial-gradient(1200px 700px at 50% -10%, var(--paper-lit), transparent 70%),
-    radial-gradient(900px 600px at 108% 105%, rgba(184, 135, 59, 0.13), transparent 65%),
-    radial-gradient(700px 500px at -8% 88%, rgba(112, 92, 74, 0.12), transparent 62%),
-    var(--paper);
-}
-
-/* Fibre grain: two crossed hatchings at low opacity read as laid paper. */
-body::after {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: 0.5;
-  background-image:
-    repeating-linear-gradient(90deg, rgba(112, 92, 74, 0.028) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(112, 92, 74, 0.022) 0 1px, transparent 1px 4px),
-    radial-gradient(circle at 18% 32%, rgba(139, 106, 79, 0.05) 0 2px, transparent 3px),
-    radial-gradient(circle at 74% 18%, rgba(139, 106, 79, 0.045) 0 3px, transparent 4px),
-    radial-gradient(circle at 62% 77%, rgba(139, 106, 79, 0.04) 0 2px, transparent 3px),
-    radial-gradient(circle at 33% 88%, rgba(139, 106, 79, 0.05) 0 2px, transparent 4px);
+  background:
+    radial-gradient(900px 520px at 8% -6%, rgba(184, 135, 59, 0.10), transparent 62%),
+    radial-gradient(760px 480px at 96% 2%, rgba(160, 74, 58, 0.055), transparent 60%);
 }
 
 .page {
-  max-width: 820px;
+  max-width: 860px;
   margin: 0 auto;
-  padding: 68px 24px 132px;
+  padding: 64px 22px 130px;
 }
 
-/* --- plate heading -------------------------------------------------------- */
-.header {
-  text-align: center;
-  margin-bottom: 40px;
-  padding-bottom: 26px;
-  border-bottom: 1px solid var(--rule);
-  position: relative;
-}
-
-/* The double rule of an engraved plate: a hairline beneath the main rule. */
-.header::after {
-  content: '';
-  position: absolute;
-  left: 0; right: 0; bottom: -4px;
-  border-bottom: 1px solid var(--rule-soft);
-}
+/* --- header --------------------------------------------------------------- */
+.header { margin-bottom: 32px; }
 
 .header h1 {
-  font-family: "Libre Baskerville", Baskerville, Georgia, serif;
+  margin: 0 0 10px;
+  font-size: 38px;
+  line-height: 1.12;
   font-weight: 700;
-  font-size: 40px;
-  line-height: 1.14;
-  letter-spacing: 0.012em;
-  margin: 0 0 6px;
-  color: var(--ink);
-}
-
-/* Printer's ornament above the title. */
-.header h1::before {
-  content: '❦';
-  display: block;
-  font-size: 19px;
-  color: var(--madder);
-  margin-bottom: 14px;
-  font-weight: 400;
+  letter-spacing: -0.028em;
+  color: var(--text);
 }
 
 .header p {
-  margin: 12px auto 0;
-  max-width: 52ch;
-  color: var(--ink-soft);
-  font-size: 17px;
-  font-style: italic;
+  margin: 0;
+  color: var(--text-dim);
+  max-width: 58ch;
+  font-size: 16px;
 }
 
-/* Letterspaced small capitals, as used for plate and figure labels. */
 .section-title {
-  font-family: "Libre Baskerville", Baskerville, Georgia, serif;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
   text-transform: uppercase;
-  letter-spacing: 0.19em;
-  color: var(--umber);
-  margin: 42px 0 16px;
-  padding-bottom: 7px;
-  border-bottom: 1px solid var(--rule-soft);
+  margin: 36px 0 14px;
 }
 
-/* --- specimen panels ------------------------------------------------------ */
+/* --- cards ---------------------------------------------------------------- */
 .input-card,
 .confidence,
 .report,
 .tool-card {
-  background: linear-gradient(172deg, var(--paper-lit), var(--paper-shade));
-  border: 1px solid var(--umber);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  position: relative;
 }
 
-/* Inner keyline — plates were printed inside a double-ruled frame. */
-.input-card::before,
-.confidence::before,
-.report::before {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  border: 1px solid var(--rule-soft);
-  border-radius: var(--radius);
-  pointer-events: none;
+.input-card, .confidence, .report { box-shadow: var(--shadow); }
+
+/* --- composer ------------------------------------------------------------- */
+.input-card { padding: 16px; transition: border-color .2s, box-shadow .2s; }
+.input-card:focus-within {
+  border-color: var(--border-strong);
+  box-shadow: 0 1px 3px rgba(44, 39, 33, 0.06), 0 10px 30px rgba(44, 39, 33, 0.08);
 }
 
-/* --- enquiry -------------------------------------------------------------- */
-.input-card { padding: 24px 26px; }
-
-textarea,
-select,
-input[type="password"] {
+textarea, select, input[type="password"] {
   width: 100%;
-  background: rgba(255, 253, 247, 0.72);
-  color: var(--ink);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 13px 15px;
-  font-family: inherit;
-  font-size: 18px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 15.5px;
   resize: vertical;
-  transition: border-color .2s, background .2s;
+  transition: border-color .18s, box-shadow .18s;
 }
-
-textarea::placeholder { color: var(--ink-faint); font-style: italic; }
-
-textarea:focus, select:focus, input:focus {
+textarea { border-color: transparent; background: transparent; padding: 6px 4px; }
+textarea::placeholder { color: var(--text-faint); }
+textarea:focus { outline: none; box-shadow: none; }
+select:focus, input:focus {
   outline: none;
-  border-color: var(--madder);
-  background: #fffdf7;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
-.examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 16px; }
+.examples { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 14px; }
 
 .chip {
-  background: transparent;
-  color: var(--ink-soft);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  border-radius: 999px;
   padding: 5px 13px;
-  font-family: inherit;
-  font-size: 15px;
-  font-style: italic;
+  font-size: 13px;
   cursor: pointer;
-  transition: all .18s;
+  transition: all .16s;
 }
 .chip:hover:not(:disabled) {
-  color: var(--madder);
-  border-color: var(--madder);
-  background: rgba(140, 59, 46, 0.05);
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-ring);
 }
 
-.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.controls select { width: auto; flex: 0 1 auto; cursor: pointer; }
-.controls input[type="password"] { flex: 1 1 210px; }
+.controls {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding-top: 12px; border-top: 1px solid var(--border);
+}
+.controls select { width: auto; flex: 0 1 auto; cursor: pointer; font-size: 14px; padding: 8px 12px; }
+.controls input[type="password"] { flex: 1 1 200px; font-size: 14px; padding: 8px 12px; }
 
-/* Buttons as letterpress blocks: ink on paper, pressed slightly on click. */
 button {
-  background: var(--ink);
-  color: var(--paper-lit);
-  border: 1px solid var(--ink);
-  border-radius: var(--radius);
-  padding: 11px 26px;
-  font-family: "Libre Baskerville", Baskerville, Georgia, serif;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 10px 20px;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
   cursor: pointer;
   margin-left: auto;
-  transition: background .18s, color .18s, transform .1s;
+  transition: background .16s, transform .12s, opacity .16s;
 }
-button:hover:not(:disabled) { background: var(--madder); border-color: var(--madder); }
-button:active:not(:disabled) { transform: translateY(1px); }
-button:disabled { opacity: 0.35; cursor: not-allowed; }
-button.stop { background: var(--madder); border-color: var(--madder); }
+button:hover:not(:disabled) { background: var(--accent-hover); }
+button:active:not(:disabled) { transform: scale(0.985); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.stop { background: var(--text-dim); }
 
 button.ghost {
   background: transparent;
-  color: var(--umber);
-  border: 1px solid var(--rule);
-  font-size: 10px;
-  padding: 5px 12px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-weight: 500;
+  font-size: 12.5px;
+  padding: 5px 11px;
   margin-left: 0;
 }
-button.ghost:hover { background: transparent; color: var(--madder); border-color: var(--madder); }
+button.ghost:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
 
-.hint { font-size: 14.5px; color: var(--ink-faint); margin: 14px 0 0; font-style: italic; }
+.hint { font-size: 12.5px; color: var(--text-faint); margin: 10px 0 0; }
 
-/* --- errata --------------------------------------------------------------- */
-.banner {
-  padding: 13px 16px;
-  border-radius: var(--radius);
-  margin-top: 20px;
-  font-size: 16px;
-}
+/* --- banners -------------------------------------------------------------- */
+.banner { padding: 12px 15px; border-radius: var(--radius-sm); margin-top: 16px; font-size: 14px; }
 .banner.error {
-  background: rgba(140, 59, 46, 0.07);
-  border: 1px solid var(--madder);
-  color: var(--madder);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  color: var(--accent-hover);
 }
 
-/* --- confidence: an engraved measuring scale ------------------------------ */
-.confidence { padding: 20px 24px; margin-top: 28px; }
+/* --- confidence ----------------------------------------------------------- */
+.confidence { padding: 18px 20px; margin-top: 24px; }
 
 .confidence-head {
   display: flex; justify-content: space-between; align-items: baseline;
-  font-family: "Libre Baskerville", Baskerville, serif;
-  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.16em;
-  color: var(--umber); margin-bottom: 12px;
+  font-size: 13px; color: var(--text-dim); margin-bottom: 10px;
 }
-.confidence-head strong {
-  font-family: "Libre Baskerville", serif;
-  font-size: 25px; letter-spacing: 0; text-transform: none;
-}
-.round-tag { color: var(--madder); }
+.confidence-head strong { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.round-tag { color: var(--accent); }
 
 .confidence-track {
-  height: 12px;
-  background: rgba(255, 253, 247, 0.7);
-  border: 1px solid var(--umber);
-  border-radius: var(--radius);
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 999px;
   overflow: hidden;
-  /* Graduation marks, like a rule engraved on the plate. */
-  background-image: repeating-linear-gradient(
-    90deg, var(--rule-soft) 0 1px, transparent 1px 10%);
 }
 .confidence-fill {
   height: 100%;
-  transition: width .8s cubic-bezier(.4, 0, .2, 1), background .5s;
-  /* Hatching, the way engravers indicated tone. */
-  background-image: repeating-linear-gradient(
-    45deg, rgba(255, 253, 247, 0.26) 0 2px, transparent 2px 5px);
+  border-radius: 999px;
+  transition: width .7s cubic-bezier(.4, 0, .2, 1), background .5s;
 }
 
 .confidence-history {
-  display: flex; gap: 12px; flex-wrap: wrap;
-  margin-top: 13px; font-size: 14px; color: var(--ink-faint); font-style: italic;
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-top: 11px; font-size: 12.5px; color: var(--text-faint);
 }
-.confidence-reason { font-size: 16.5px; color: var(--ink-soft); margin: 14px 0 0; font-style: italic; }
-.gaps { margin: 10px 0 0; padding-left: 20px; font-size: 16px; color: var(--ink-soft); }
+.confidence-reason { font-size: 14px; color: var(--text-dim); margin: 12px 0 0; }
+.gaps { margin: 9px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--text-dim); }
 .gaps li { margin-bottom: 3px; }
 
-/* --- field notes ---------------------------------------------------------- */
+/* --- trace ---------------------------------------------------------------- */
 .trace-node {
-  display: flex; align-items: center; gap: 12px;
-  font-family: "Libre Baskerville", Baskerville, serif;
-  font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em;
-  color: var(--ink); margin: 26px 0 10px;
+  display: flex; align-items: center; gap: 11px;
+  font-size: 14.5px; font-weight: 600; margin: 22px 0 9px;
 }
 .dot {
-  width: 7px; height: 7px; flex: none;
-  background: var(--madder);
-  border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(140, 59, 46, 0.14);
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); flex: none;
+  box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
 .tool-card {
-  margin: 8px 0 8px 24px;
+  margin: 6px 0 6px 20px;
   overflow: hidden;
-  box-shadow: none;
-  border-color: var(--rule);
-  transition: border-color .2s;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .18s, box-shadow .18s;
 }
-.tool-card:hover { border-color: var(--umber); }
+.tool-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }
 
 .tool-head {
-  display: flex; align-items: center; gap: 12px; width: 100%;
-  background: transparent; border: 0; color: var(--ink);
-  padding: 11px 14px; margin: 0; text-align: left; cursor: pointer;
-  font-family: inherit; font-size: 16px; font-weight: 400;
-  text-transform: none; letter-spacing: 0;
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: transparent; border: 0; color: var(--text);
+  padding: 11px 13px; margin: 0; font-weight: 400; text-align: left;
+  cursor: pointer; font-size: 14px;
 }
-.tool-head:hover { background: transparent; }
-.tool-icon { flex: none; font-size: 15px; color: var(--madder); }
+.tool-head:hover { background: transparent; transform: none; }
+.tool-icon { flex: none; font-size: 14px; }
 .tool-name {
-  font-family: "Libre Baskerville", serif;
-  font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.13em;
-  color: var(--umber); flex: none;
-  border: 1px solid var(--rule); padding: 2px 7px; border-radius: var(--radius);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11.5px; color: var(--accent);
+  background: var(--accent-soft); padding: 2px 7px; border-radius: 5px; flex: none;
 }
 .tool-query {
-  color: var(--ink-soft); font-style: italic;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  flex: 1 1 auto; min-width: 0;
+  color: var(--text-dim); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; flex: 1 1 auto; min-width: 0;
 }
-.tool-count { color: var(--ink-faint); font-size: 14px; flex: none; }
-.tool-chevron { color: var(--ink-faint); flex: none; font-size: 11px; }
+.tool-count { color: var(--text-faint); font-size: 12px; flex: none; }
+.tool-chevron { color: var(--text-faint); flex: none; font-size: 11px; }
 
-.tool-body { padding: 2px 14px 14px 46px; border-top: 1px solid var(--rule-soft); }
-.sources { margin: 11px 0 0; padding-left: 18px; font-size: 16px; }
-.sources li { margin-bottom: 5px; }
-.sources a { color: var(--madder); text-decoration: none; }
+.tool-body { padding: 2px 13px 13px 40px; border-top: 1px solid var(--border); }
+.sources { margin: 10px 0 0; padding-left: 16px; font-size: 13.5px; }
+.sources li { margin-bottom: 4px; }
+.sources a { color: var(--accent); text-decoration: none; }
 .sources a:hover { text-decoration: underline; }
-.muted { color: var(--ink-faint); font-size: 15px; font-style: italic; }
+.muted { color: var(--text-faint); font-size: 13px; }
 
 .trace-error {
-  background: rgba(140, 59, 46, 0.07);
-  border: 1px solid var(--madder);
-  border-radius: var(--radius);
-  padding: 11px 14px; font-size: 16px; margin: 10px 0; color: var(--madder);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-ring);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px; font-size: 13.5px; margin: 8px 0; color: var(--accent-hover);
 }
 
 .trace-gate {
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(107, 122, 90, 0.09);
-  border: 1px solid var(--terre-verte);
-  border-radius: var(--radius);
-  padding: 11px 15px; margin: 14px 0;
-  font-size: 16px; font-style: italic; color: var(--ink-soft);
+  display: flex; align-items: center; gap: 9px;
+  background: rgba(111, 128, 96, 0.08);
+  border: 1px solid rgba(111, 128, 96, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px; margin: 11px 0; font-size: 13.5px; color: var(--text-dim);
 }
 
 .trace-skipped {
-  color: var(--ink-faint); font-size: 15px;
-  margin: 6px 0 6px 24px; font-style: italic;
+  color: var(--text-faint); font-size: 12.5px;
+  margin: 5px 0 5px 20px; font-style: italic;
 }
 
 .trace-working {
-  display: flex; align-items: center; gap: 10px;
-  color: var(--ink-faint); font-size: 15px; font-style: italic;
-  margin: 15px 0 0 24px;
+  display: flex; align-items: center; gap: 9px;
+  color: var(--text-faint); font-size: 13px; margin: 13px 0 0 20px;
 }
 .spinner {
   width: 12px; height: 12px; border-radius: 50%;
-  border: 1.5px solid var(--rule); border-top-color: var(--madder);
-  animation: spin 1s linear infinite;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* --- the report ----------------------------------------------------------- */
-.report { padding: 14px 34px 32px; margin-top: 36px; }
+/* --- report --------------------------------------------------------------- */
+.report { padding: 8px 26px 26px; margin-top: 30px; }
 
 .report-head {
   display: flex; justify-content: space-between; align-items: center;
   flex-wrap: wrap; gap: 10px;
-  padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+  padding: 14px 0; border-bottom: 1px solid var(--border);
 }
-.report-meta {
-  display: flex; align-items: center; gap: 12px;
-  font-size: 14px; color: var(--ink-faint); font-style: italic;
-}
+.report-meta { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--text-faint); }
 
-.markdown { max-width: 66ch; padding-top: 10px; }
-
-.markdown h1 {
-  font-family: "Libre Baskerville", Baskerville, serif;
-  font-size: 26px; font-weight: 700; line-height: 1.24;
-  margin: 20px 0 18px; text-align: center;
-}
+.markdown { max-width: 70ch; padding-top: 8px; }
+.markdown h1 { font-size: 25px; font-weight: 700; margin: 18px 0 14px; letter-spacing: -0.022em; }
 .markdown h2 {
-  font-family: "Libre Baskerville", Baskerville, serif;
-  font-size: 13px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.15em;
-  margin: 36px 0 12px; padding-bottom: 7px;
-  border-bottom: 1px solid var(--rule-soft);
+  font-size: 18px; font-weight: 650; margin: 32px 0 11px;
+  padding-bottom: 7px; border-bottom: 1px solid var(--border);
+  letter-spacing: -0.012em;
 }
-.markdown h3 {
-  font-family: "Libre Baskerville", serif;
-  font-size: 16px; font-weight: 700; margin: 26px 0 8px;
-}
-.markdown p { margin: 0 0 15px; text-align: justify; hyphens: auto; }
-.markdown ul, .markdown ol { margin: 0 0 15px; padding-left: 24px; }
+.markdown h3 { font-size: 15.5px; font-weight: 650; margin: 24px 0 7px; }
+.markdown p { margin: 0 0 15px; }
+.markdown ul, .markdown ol { margin: 0 0 15px; padding-left: 22px; }
 .markdown li { margin-bottom: 6px; }
-.markdown li::marker { color: var(--umber); }
-.markdown strong { font-weight: 600; color: var(--ink); }
-.markdown em { color: var(--ink-soft); }
-.markdown a { color: var(--madder); word-break: break-word; }
+.markdown li::marker { color: var(--text-faint); }
+.markdown strong { font-weight: 650; }
+.markdown a { color: var(--accent); word-break: break-word; }
 
 .markdown blockquote {
-  margin: 0 0 15px; padding: 4px 0 4px 18px;
-  border-left: 2px solid var(--umber);
-  color: var(--ink-soft); font-style: italic;
+  margin: 0 0 15px; padding: 3px 0 3px 15px;
+  border-left: 3px solid var(--border-strong); color: var(--text-dim);
 }
 .markdown code {
-  background: rgba(112, 92, 74, 0.09);
-  padding: 1px 6px; border-radius: var(--radius);
-  font-family: ui-monospace, Menlo, monospace; font-size: 14.5px;
+  background: var(--surface-2); padding: 2px 6px; border-radius: 5px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px;
 }
 .markdown pre {
-  background: rgba(255, 253, 247, 0.66);
-  border: 1px solid var(--rule);
-  padding: 14px; border-radius: var(--radius); overflow-x: auto;
+  background: var(--surface-2); border: 1px solid var(--border);
+  padding: 14px; border-radius: var(--radius-sm); overflow-x: auto;
 }
 .markdown pre code { background: none; padding: 0; }
+.markdown hr { border: 0; border-top: 1px solid var(--border); margin: 26px 0; }
 
-/* A printer's ornament instead of a plain horizontal rule. */
-.markdown hr {
-  border: 0; margin: 30px 0; text-align: center;
-}
-.markdown hr::after {
-  content: '❧'; color: var(--umber); font-size: 17px;
-}
-
-/* Tables ruled like a specimen register. */
 .markdown table {
-  border-collapse: collapse; width: 100%;
-  margin: 0 0 20px; font-size: 15.5px;
-  border-top: 2px solid var(--umber);
-  border-bottom: 2px solid var(--umber);
+  border-collapse: separate; border-spacing: 0; width: 100%;
+  margin: 0 0 18px; font-size: 13.5px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
 }
-.markdown th, .markdown td {
-  padding: 8px 12px; text-align: left;
-  border-bottom: 1px solid var(--rule-soft);
-}
-.markdown th {
-  font-family: "Libre Baskerville", serif;
-  font-size: 10.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.1em;
-  border-bottom: 1px solid var(--umber);
-}
-.markdown tbody tr:last-child td { border-bottom: 0; }
-.markdown tbody tr:nth-child(even) { background: rgba(112, 92, 74, 0.04); }
+.markdown th, .markdown td { padding: 9px 13px; text-align: left; border-bottom: 1px solid var(--border); }
+.markdown tr:last-child td { border-bottom: 0; }
+.markdown th { background: var(--surface-2); font-weight: 650; font-size: 12.5px; }
+.markdown tbody tr:nth-child(even) { background: rgba(239, 231, 216, 0.4); }
 
-/* --- references ----------------------------------------------------------- */
-/* Set as raised footnote numerals, the way a printed plate cites its plates. */
+/* --- citations ------------------------------------------------------------ */
 .cite-ref {
-  display: inline-block;
-  color: var(--madder);
-  font-family: "Libre Baskerville", serif;
-  font-size: 11px; font-weight: 700;
-  vertical-align: super; line-height: 0;
-  padding: 0 1px; margin: 0 1px;
-  text-decoration: none; cursor: pointer;
-  border-bottom: 1px dotted transparent;
-  transition: border-color .15s, color .15s;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; margin: 0 1.5px;
+  background: var(--accent-soft); color: var(--accent);
+  border: 1px solid var(--accent-ring); border-radius: 5px;
+  font-size: 10.5px; font-weight: 650; line-height: 1;
+  vertical-align: 2px; cursor: pointer; text-decoration: none;
+  transition: all .15s;
 }
-.cite-ref:hover { border-bottom-color: var(--madder); color: #a8422f; }
+.cite-ref:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-.sources-title { margin-top: 38px; }
+.sources-title { margin-top: 34px; }
 .citations { list-style: none; margin: 0; padding: 0; }
 .citation {
-  display: flex; gap: 12px; align-items: baseline;
-  padding: 8px 10px; border-radius: var(--radius);
-  border-left: 2px solid transparent;
-  transition: background .3s, border-color .3s;
+  display: flex; gap: 11px; align-items: baseline;
+  padding: 9px 11px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; transition: background .3s, border-color .3s;
 }
-.citation:hover { background: rgba(112, 92, 74, 0.05); }
-.citation.active {
-  background: rgba(140, 59, 46, 0.07);
-  border-left-color: var(--madder);
-}
+.citation:hover { background: var(--surface-2); }
+.citation.active { background: var(--accent-soft); border-color: var(--accent-ring); }
 .cite-num {
-  flex: none; min-width: 22px;
-  font-family: "Libre Baskerville", serif;
-  font-size: 12px; color: var(--madder);
-  font-variant-numeric: tabular-nums;
+  flex: none; min-width: 20px; color: var(--text-faint);
+  font-size: 12px; font-variant-numeric: tabular-nums;
 }
 .cite-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.cite-body a {
-  color: var(--ink); text-decoration: none; font-size: 16.5px;
-  overflow: hidden; text-overflow: ellipsis;
-}
-.cite-body a:hover { color: var(--madder); text-decoration: underline; }
-.cite-host { color: var(--ink-faint); font-size: 13.5px; font-style: italic; }
+.cite-body a { color: var(--text); text-decoration: none; font-size: 14px; overflow: hidden; text-overflow: ellipsis; }
+.cite-body a:hover { color: var(--accent); text-decoration: underline; }
+.cite-host { color: var(--text-faint); font-size: 11.5px; }
 
 /* --- small screens -------------------------------------------------------- */
 @media (max-width: 640px) {
-  body { font-size: 17px; }
   .page { padding: 40px 16px 90px; }
-  .header h1 { font-size: 29px; }
-  .report { padding: 12px 18px 24px; }
-  .markdown p { text-align: left; }
+  .header h1 { font-size: 28px; }
+  .report { padding: 6px 16px 20px; }
   .tool-card, .trace-skipped, .trace-working { margin-left: 0; }
   .controls button { width: 100%; margin-left: 0; }
 }
