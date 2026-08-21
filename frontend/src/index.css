@@ -236,10 +236,15 @@ button {
   margin-left: auto;
   transition: background .16s, transform .12s, opacity .16s;
 }
+/* Scoped to the primary button. Every override below repeats :not(:disabled),
+   because that pseudo-class counts toward specificity - without it this rule
+   outranks them and paints ghost buttons, tool rows and links with the solid
+   accent fill, which leaves their dark-on-bright text unreadable. */
 button:hover:not(:disabled) { background: var(--accent-hover); }
 button:active:not(:disabled) { transform: scale(0.985); }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 button.stop { background: var(--surface-2); color: var(--text); border: 1px solid var(--border-strong); }
+button.stop:hover:not(:disabled) { background: var(--border); }
 
 button.ghost {
   background: transparent;
@@ -250,7 +255,7 @@ button.ghost {
   padding: 6px 12px;
   margin-left: 0;
 }
-button.ghost:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+button.ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
 
 button.ghost.active {
   background: var(--accent-soft);
@@ -286,7 +291,7 @@ button.ghost.active {
   color: var(--accent); font: inherit; font-size: 13.5px; font-weight: 500;
   cursor: pointer; text-decoration: underline;
 }
-.linky:hover { background: none; color: var(--accent-hover); }
+.linky:hover:not(:disabled) { background: none; color: var(--accent-hover); }
 
 /* --- search filters ------------------------------------------------------- */
 .filters {
@@ -376,7 +381,9 @@ button.ghost.active {
   padding: 12px 14px; margin: 0; font-weight: 400; text-align: left;
   cursor: pointer; font-size: 15px;
 }
-.tool-head:hover { background: transparent; transform: none; }
+/* Same faint lift the reference links use, so an expanded source list and the
+   row that opened it behave identically. */
+.tool-head:hover:not(:disabled) { background: var(--surface-2); transform: none; }
 .tool-icon { flex: none; font-size: 15px; }
 .tool-name {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
