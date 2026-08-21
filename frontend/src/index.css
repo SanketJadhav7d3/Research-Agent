@@ -1,42 +1,44 @@
 /* ---------------------------------------------------------------------------
-   Modern interface, historical palette.
+   Modern interface, historical palette, dark ground.
 
    Layout, type and interaction follow current conventions — Inter, generous
    spacing, rounded cards, soft shadows. The colour is where the Victorian
-   natural-history reference lives: warm rag paper instead of white, ink that
-   is browned rather than black, and accents drawn from the pigments of the
-   period — madder lake, terre verte, yellow ochre, Prussian blue.
+   natural-history reference lives: a warm brown-black ground rather than a
+   neutral or blue one, aged-paper cream for text rather than white, and
+   accents drawn from the pigments of the period — madder lake, terre verte,
+   yellow ochre — lifted in value so they read on a dark background.
 --------------------------------------------------------------------------- */
 
 :root {
-  /* Paper, warmed */
-  --bg: #f6f1e7;
-  --bg-tint: #efe7d8;
-  --surface: #fdfbf6;
-  --surface-2: #f4eee2;
+  /* Warm near-black — brown-toned rather than blue or neutral, so the paper
+     reference survives the inversion. */
+  --bg: #16120e;
+  --bg-tint: #1d1813;
+  --surface: #1e1913;
+  --surface-2: #272119;
 
-  /* Browned ink rather than black — the single biggest period cue */
-  --text: #2c2721;
-  --text-dim: #6b6156;
-  --text-faint: #988d7e;
+  /* Aged-paper cream as the text colour, not white */
+  --text: #ece3d3;
+  --text-dim: #a89a85;
+  --text-faint: #7b6f5e;
 
-  --border: #e2d8c6;
-  --border-strong: #d0c3ac;
+  --border: #332b22;
+  --border-strong: #483d30;
 
-  /* Period pigments */
-  --accent: #a04a3a;         /* madder lake */
-  --accent-hover: #8c3d2f;
-  --accent-soft: rgba(160, 74, 58, 0.09);
-  --accent-ring: rgba(160, 74, 58, 0.16);
+  /* Period pigments, lifted for legibility on a dark ground */
+  --accent: #cf6a52;         /* madder lake */
+  --accent-hover: #dd7a61;
+  --accent-soft: rgba(207, 106, 82, 0.13);
+  --accent-ring: rgba(207, 106, 82, 0.28);
 
-  --green: #6f8060;          /* terre verte */
-  --ochre: #b8873b;
-  --prussian: #2f4858;
+  --green: #8fa079;          /* terre verte */
+  --ochre: #d4a24e;
+  --prussian: #6d8fa3;
 
   --radius: 14px;
   --radius-sm: 9px;
-  --shadow-sm: 0 1px 2px rgba(44, 39, 33, 0.05);
-  --shadow: 0 1px 3px rgba(44, 39, 33, 0.06), 0 8px 24px rgba(44, 39, 33, 0.05);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.36), 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 * { box-sizing: border-box; }
@@ -52,7 +54,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Two very soft washes so the page reads as paper rather than flat cream. */
+/* Two very soft washes so the ground has depth rather than reading as flat. */
 body::before {
   content: '';
   position: fixed;
@@ -60,8 +62,8 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(900px 520px at 8% -6%, rgba(184, 135, 59, 0.10), transparent 62%),
-    radial-gradient(760px 480px at 96% 2%, rgba(160, 74, 58, 0.055), transparent 60%);
+    radial-gradient(900px 520px at 8% -6%, rgba(212, 162, 78, 0.09), transparent 62%),
+    radial-gradient(760px 480px at 96% 2%, rgba(207, 106, 82, 0.07), transparent 60%);
 }
 
 .page {
@@ -114,7 +116,7 @@ body::before {
 .input-card { padding: 16px; transition: border-color .2s, box-shadow .2s; }
 .input-card:focus-within {
   border-color: var(--border-strong);
-  box-shadow: 0 1px 3px rgba(44, 39, 33, 0.06), 0 10px 30px rgba(44, 39, 33, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 12px 34px rgba(0, 0, 0, 0.34);
 }
 
 textarea, select, input[type="password"] {
@@ -179,7 +181,7 @@ button {
 button:hover:not(:disabled) { background: var(--accent-hover); }
 button:active:not(:disabled) { transform: scale(0.985); }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
-button.stop { background: var(--text-dim); }
+button.stop { background: var(--surface-2); color: var(--text); border: 1px solid var(--border-strong); }
 
 button.ghost {
   background: transparent;
@@ -331,7 +333,7 @@ button.ghost:hover { background: var(--surface-2); color: var(--text); border-co
 .markdown ul, .markdown ol { margin: 0 0 15px; padding-left: 22px; }
 .markdown li { margin-bottom: 6px; }
 .markdown li::marker { color: var(--text-faint); }
-.markdown strong { font-weight: 650; }
+.markdown strong { font-weight: 650; color: #fbf5e9; }
 .markdown a { color: var(--accent); word-break: break-word; }
 
 .markdown blockquote {
@@ -357,7 +359,7 @@ button.ghost:hover { background: var(--surface-2); color: var(--text); border-co
 .markdown th, .markdown td { padding: 9px 13px; text-align: left; border-bottom: 1px solid var(--border); }
 .markdown tr:last-child td { border-bottom: 0; }
 .markdown th { background: var(--surface-2); font-weight: 650; font-size: 12.5px; }
-.markdown tbody tr:nth-child(even) { background: rgba(239, 231, 216, 0.4); }
+.markdown tbody tr:nth-child(even) { background: rgba(255, 245, 225, 0.022); }
 
 /* --- citations ------------------------------------------------------------ */
 .cite-ref {
