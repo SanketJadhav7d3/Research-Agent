@@ -405,9 +405,11 @@ def synthesize(state: AgentState) -> dict:
         )
         chart_brief = (
             f"\n\nCharts drawn from this evidence:\n{listed}\n\n"
-            "Place each marker on a line of its own where the chart belongs, "
-            "and explain in the surrounding prose what it shows. Use every "
-            "marker exactly once, and invent no others.\n"
+            "Place each marker alone on its own line where the chart belongs, with "
+            "nothing after it — the title and figure number are rendered for "
+            "you, so repeating them reads as a duplicate. Explain in the "
+            "surrounding prose what the chart shows. Use every marker exactly "
+            "once, and invent no others.\n"
         )
 
     response = _model(state).invoke(

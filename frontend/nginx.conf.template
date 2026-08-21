@@ -5,9 +5,29 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # The charting library is a 4.8MB chunk uncompressed and about a quarter of
+    # that gzipped, so this is the difference between a usable page and a slow
+    # one. It is loaded on demand, but the demand is common enough to matter.
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_comp_level 6;
+    gzip_proxied any;
+    gzip_types
+        text/plain text/css text/javascript
+        application/javascript application/json application/xml
+        image/svg+xml;
+
     # SPA: unknown paths fall through to index.html.
     location / {
         try_files $uri $uri/ /index.html;
+    }
+
+    # Hashed filenames, so these can be cached hard and forever. Without this
+    # the charting chunk is refetched on every visit.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
     }
 
     # Proxy API calls to the backend.

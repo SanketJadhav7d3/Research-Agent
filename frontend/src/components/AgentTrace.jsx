@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react'
 import ToolCallCard from './ToolCallCard'
+import CodeRunCard from './CodeRunCard'
 
 const NODE_LABELS = {
   clarify: 'Clarifying the question',
   plan: 'Planning sub-questions',
   execute: 'Gathering evidence',
+  visualize: 'Writing code to chart the evidence',
   reflect: 'Judging its own answer',
   synthesize: 'Writing the report',
 }
@@ -25,6 +27,10 @@ function buildRows(events) {
     } else if (e.name === 'tool_result') {
       const row = pending.find((r) => r.call.tool === e.tool && !r.result)
       if (row) row.result = e
+    } else if (e.name === 'code_run') {
+      rows.push({ kind: 'code', event: e })
+    } else if (e.name === 'chart_ready') {
+      rows.push({ kind: 'chart', event: e })
     } else if (e.name === 'results_filtered') {
       rows.push({ kind: 'filtered', event: e })
     } else if (e.name === 'tool_skipped') {
@@ -67,6 +73,16 @@ export default function AgentTrace({ events, status }) {
           return (
             <div key={i} className="trace-skipped">
               ⤾ skipped duplicate {row.event.tool} — {String(v).slice(0, 60)}
+            </div>
+          )
+        }
+        if (row.kind === 'code') {
+          return <CodeRunCard key={i} event={row.event} />
+        }
+        if (row.kind === 'chart') {
+          return (
+            <div key={i} className="trace-chart">
+              📊 chart {row.event.index}: {row.event.title || 'untitled'}
             </div>
           )
         }

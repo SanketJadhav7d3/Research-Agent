@@ -1,6 +1,30 @@
 import { useCallback, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import ReportChart from './ReportChart'
+import { toDataUri } from '../lib/charts'
+
+// Charts are placed by markers the agent wrote at the start of a line.
+// Splitting the prose around them is simpler and more predictable than a
+// custom remark plugin.
+//
+// Anything following the marker on that line is consumed and discarded: asked
+// for a bare marker, the model reliably writes "[chart:1] Margin Comparison"
+// instead, and that caption is already rendered under the figure. Being strict
+// here meant the marker fell through as literal text.
+const CHART_LINE = /^[ \t]*\[chart:(\d+)\][^\n]*$/gm
+
+function splitOnCharts(markdown) {
+  const parts = markdown.split(CHART_LINE)
+  // split() with one capture group alternates: text, number, text, number…
+  return parts.map((part, i) =>
+    i % 2 === 0
+      // A marker the agent invented with no chart behind it would otherwise
+      // show up as literal text in the prose.
+      ? { kind: 'markdown', text: part.replace(/\[chart:\d+\]/g, '') }
+      : { kind: 'chart', index: Number(part) },
+  )
+}
 
 // The agent appends its own Sources section to the markdown so that a copied or
 // exported report is self-contained. On screen we render that list ourselves as
@@ -26,10 +50,11 @@ function hostOf(url) {
 
 export default function ReportViewer({ report }) {
   const [copied, setCopied] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [active, setActive] = useState(null)
 
-  const prose = useMemo(
-    () => (report ? linkCitations(splitReport(report.report)) : ''),
+  const segments = useMemo(
+    () => (report ? splitOnCharts(linkCitations(splitReport(report.report))) : []),
     [report],
   )
 
@@ -45,6 +70,7 @@ export default function ReportViewer({ report }) {
   if (!report) return null
 
   const citations = report.citations ?? []
+  const charts = report.charts ?? []
   const words = report.report.split(/\s+/).length
 
   const copy = async () => {
@@ -53,8 +79,28 @@ export default function ReportViewer({ report }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const download = () => {
-    const blob = new Blob([report.report], { type: 'text/markdown' })
+  const download = async () => {
+    let markdown = report.report
+
+    // An interactive chart cannot survive a markdown file, so each marker
+    // becomes an embedded still of what the reader saw. Rendered from the spec
+    // rather than from the page, so it works whether or not the chart is
+    // currently on screen.
+    if (charts.length) {
+      setExporting(true)
+      try {
+        const images = await Promise.all(charts.map((c) => toDataUri(c).catch(() => null)))
+        markdown = markdown.replace(/^[ \t]*\[chart:(\d+)\][ \t]*$/gm, (marker, n) => {
+          const uri = images[Number(n) - 1]
+          const title = charts[Number(n) - 1]?.title || `Figure ${n}`
+          return uri ? `![${title}](${uri})` : marker
+        })
+      } finally {
+        setExporting(false)
+      }
+    }
+
+    const blob = new Blob([markdown], { type: 'text/markdown' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -111,16 +157,26 @@ ${source.url}` : `Source ${n}`}
           <button className="ghost" onClick={copy}>
             {copied ? 'Copied' : 'Copy'}
           </button>
-          <button className="ghost" onClick={download}>
-            Download
+          <button className="ghost" onClick={download} disabled={exporting}>
+            {exporting ? 'Rendering…' : 'Download'}
           </button>
         </div>
       </div>
 
       <div className="markdown">
-        <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-          {prose}
-        </ReactMarkdown>
+        {segments.map((segment, i) =>
+          segment.kind === 'chart' ? (
+            <ReportChart
+              key={i}
+              chart={charts[segment.index - 1]}
+              index={segment.index}
+            />
+          ) : segment.text.trim() ? (
+            <ReactMarkdown key={i} remarkPlugins={[remarkGfm]} components={components}>
+              {segment.text}
+            </ReactMarkdown>
+          ) : null,
+        )}
       </div>
 
       {citations.length > 0 && (
