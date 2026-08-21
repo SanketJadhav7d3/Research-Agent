@@ -17,21 +17,28 @@ import { useEffect, useRef } from 'react'
  *   swing in and out of the viewport instead of all staying on screen, and
  *   arriving stars are a far stronger motion cue than one sliding across.
  *
- *   Flicker is deep (0.45 to 1.0), not a gentle pulse. On a field this sparse
- *   it is the flicker that registers first and makes the whole thing feel
- *   alive rather than printed.
+ *   Flicker is deep (0.45 to 1.0), not a gentle pulse. It is the flicker that
+ *   registers first, and it is what makes the field feel alive rather than
+ *   printed.
  */
 
-const DENSITY = 1 / 5200    // stars per square pixel
-const MAX_STARS = 420
+// Stars per square pixel *of visible viewport*, which is the only figure that
+// describes what you actually see. Counting the whole field instead is
+// misleading: it spans the full diagonal, so on a 1920x1080 window barely a
+// seventh of it is on screen at any moment, and a total that sounds generous
+// renders as a thin scattering.
+const VISIBLE_DENSITY = 1 / 6200
+const MAX_STARS = 3200
 
 // Radians per millisecond. One full revolution takes about 2.5 minutes.
 const ROTATION_SPEED = (Math.PI * 2) / 150_000
 
 const FLICKER_SPEED = 0.0015
 
-// Shooting stars: rare, one at a time, gone in under a second.
-const SHOOTING_CHANCE_PER_SECOND = 0.11
+// Shooting stars: one at a time, gone in under a second, and roughly one
+// every seven seconds. Frequent enough to catch while reading a report,
+// infrequent enough that it never becomes the thing you are watching.
+const SHOOTING_CHANCE_PER_SECOND = 0.15
 const SHOOTING_SPEED = 0.55        // px per millisecond
 const SHOOTING_TRAIL = 120         // px
 
@@ -39,7 +46,13 @@ function createStars(width, height) {
   // Full diagonal, so the field runs past the edges of the viewport and stars
   // rotate into view rather than merely across it.
   const maxRadius = Math.hypot(width, height)
-  const count = Math.min(MAX_STARS, Math.round(width * height * DENSITY))
+  // Scale the total by how much larger the field is than the window, so the
+  // on-screen density comes out at VISIBLE_DENSITY regardless of window shape.
+  const spread = (Math.PI * maxRadius * maxRadius) / (width * height)
+  const count = Math.min(
+    MAX_STARS,
+    Math.round(width * height * VISIBLE_DENSITY * spread),
+  )
 
   return Array.from({ length: count }, () => {
     const depth = Math.random()
