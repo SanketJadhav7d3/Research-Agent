@@ -20,6 +20,11 @@ class AgentState(TypedDict, total=False):
     iteration: int              # Execute -> reflect loops completed
     max_iterations: int         # Hard cap
 
+    # Optional user search preferences. include_keywords bias the queries;
+    # exclude_keywords are enforced by discarding matching search results.
+    include_keywords: list[str]
+    exclude_keywords: list[str]
+
     # Per-request model selection. api_key is a caller-supplied key used for
     # this run only — never logged, never persisted.
     provider: str

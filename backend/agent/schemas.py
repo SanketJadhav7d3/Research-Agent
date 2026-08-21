@@ -39,3 +39,16 @@ class Reflection(BaseModel):
         default_factory=list,
         description="Sub-questions that remain weakly answered.",
     )
+
+
+class ImprovedPrompt(BaseModel):
+    improved: str = Field(
+        description="The research question rewritten to be clearer and more specific. "
+        "Keep the user's actual subject and intent — do not add constraints, "
+        "dates, regions or entities they did not mention."
+    )
+    changes: list[str] = Field(
+        default_factory=list,
+        description="Short notes on what you changed and why, one per change. "
+        "Empty if the question was already well specified.",
+    )

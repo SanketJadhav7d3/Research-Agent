@@ -9,6 +9,21 @@ export async function fetchProviders() {
   return res.json()
 }
 
+// Asks the model to rewrite a research question. One call, so a plain JSON
+// response rather than a stream. Returns { improved, changes }.
+export async function improvePrompt(body) {
+  const res = await fetch(`${BASE}/improve-prompt`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null)
+    throw new Error(detail?.detail || `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
 // Streams the agent trace. POST rather than EventSource so the user's own API
 // key travels in the request body, never in a URL where logs would capture it.
 export async function streamResearch(body, { onEvent, signal }) {

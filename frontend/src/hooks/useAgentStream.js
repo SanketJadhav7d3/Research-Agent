@@ -11,7 +11,9 @@ export function useAgentStream() {
   const [error, setError] = useState(null)
   const abortRef = useRef(null)
 
-  const start = useCallback(async ({ goal, provider, model, apiKey }) => {
+  const start = useCallback(async ({
+    goal, provider, model, apiKey, includeKeywords, excludeKeywords,
+  }) => {
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -29,6 +31,8 @@ export function useAgentStream() {
           ...(provider ? { provider } : {}),
           ...(model ? { model } : {}),
           ...(apiKey ? { api_key: apiKey } : {}),
+          ...(includeKeywords?.length ? { include_keywords: includeKeywords } : {}),
+          ...(excludeKeywords?.length ? { exclude_keywords: excludeKeywords } : {}),
         },
         {
           signal: controller.signal,

@@ -25,6 +25,8 @@ function buildRows(events) {
     } else if (e.name === 'tool_result') {
       const row = pending.find((r) => r.call.tool === e.tool && !r.result)
       if (row) row.result = e
+    } else if (e.name === 'results_filtered') {
+      rows.push({ kind: 'filtered', event: e })
     } else if (e.name === 'tool_skipped') {
       rows.push({ kind: 'skipped', event: e })
     } else if (e.name === 'gate') {
@@ -65,6 +67,15 @@ export default function AgentTrace({ events, status }) {
           return (
             <div key={i} className="trace-skipped">
               ⤾ skipped duplicate {row.event.tool} — {String(v).slice(0, 60)}
+            </div>
+          )
+        }
+        if (row.kind === 'filtered') {
+          const f = row.event
+          return (
+            <div key={i} className="trace-skipped">
+              ⊘ dropped {f.dropped} result{f.dropped === 1 ? '' : 's'} matching
+              your excluded terms ({f.terms.join(', ')})
             </div>
           )
         }

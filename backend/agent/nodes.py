@@ -16,6 +16,7 @@ from config import (
     MAX_TOOL_CALLS_PER_ROUND,
     MAX_TOOL_CALLS_TOTAL,
 )
+from agent import keywords
 from agent.events import emit
 from agent.llm import get_model
 from agent.schemas import ClarifiedGoal, Reflection, ResearchPlan
@@ -137,12 +138,16 @@ def _execute_brief(state: AgentState) -> str:
     """
     goal = state["clarified_goal"]
     gaps = state.get("gaps") or []
+    prefs = keywords.brief(
+        state.get("include_keywords") or [], state.get("exclude_keywords") or []
+    )
 
     if state.get("iteration", 0) == 0 or not gaps:
         return (
             f"Research goal: {goal}\n\n"
             "Sub-questions identified during planning:\n"
             + "\n".join(f"- {q}" for q in state["plan"])
+            + prefs
         )
 
     tried = [
@@ -160,6 +165,7 @@ def _execute_brief(state: AgentState) -> str:
         + "\n\nQueries you already tried — do not repeat them. Rephrase, "
           "narrow, or approach from a different angle:\n"
         + "\n".join(f"- {t}" for t in tried[-15:])
+        + prefs
     )
 
 
@@ -200,6 +206,9 @@ def execute(state: AgentState) -> dict:
     findings = list(state.get("findings", []))
     stopped_early = False
 
+    include = state.get("include_keywords") or []
+    exclude = state.get("exclude_keywords") or []
+
     # Budget for this round: the per-round allowance, or whatever remains of the
     # overall ceiling, whichever is smaller.
     calls_before = len(tool_calls)
@@ -235,6 +244,13 @@ def execute(state: AgentState) -> dict:
                     tool_call_id=call["id"],
                 ))
                 continue
+
+            # Fold the user's required terms into the query before dedup, so
+            # the recorded call and the trace show what was actually searched.
+            if include and call["name"] in keywords.SEARCH_TOOLS:
+                query = call["args"].get("query")
+                if isinstance(query, str):
+                    call["args"]["query"] = keywords.augment(query, include)
 
             key = _call_key(call["name"], call["args"])
             if key in seen_calls:
@@ -278,6 +294,17 @@ def execute(state: AgentState) -> dict:
             # order it asked for, regardless of which finished first.
             order = {id(c): i for i, (c, _) in enumerate(runnable)}
             for call, results in sorted(outcomes, key=lambda o: order[id(o[0])]):
+                # Enforce the user's exclusions on search results only. A page
+                # or PDF the model deliberately opened is not filtered — it
+                # asked for that specific document.
+                dropped = 0
+                if exclude and call["name"] in keywords.SEARCH_TOOLS:
+                    results, dropped = keywords.filter_results(results, exclude)
+                    if dropped:
+                        log.info("excluded %d result(s) from %s", dropped, call["name"])
+                        emit("results_filtered", tool=call["name"],
+                             dropped=dropped, terms=exclude)
+
                 emit(
                     "tool_result",
                     tool=call["name"],
@@ -298,9 +325,17 @@ def execute(state: AgentState) -> dict:
                 ]
                 seen_urls.update(r["url"] for r in fresh if r.get("url"))
                 findings.extend(fresh)
-                messages.append(ToolMessage(
-                    content=json.dumps(results), tool_call_id=call["id"]
-                ))
+                # Say so when the filter emptied a result set, or the model
+                # sees a bare [] and concludes the topic has no coverage.
+                content = json.dumps(results)
+                if dropped:
+                    content += (
+                        f"\n\nNote: {dropped} result(s) were removed because they "
+                        f"mention terms the user excluded ({', '.join(exclude)}). "
+                        f"Try a query that approaches the question from a "
+                        f"different angle."
+                    )
+                messages.append(ToolMessage(content=content, tool_call_id=call["id"]))
 
         if stopped_early:
             log.warning("round tool budget (%d) spent", budget)
