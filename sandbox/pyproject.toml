@@ -1,0 +1,18 @@
+[project]
+name = "research-agent-sandbox"
+version = "0.1.0"
+description = "Isolated Python execution service for agent-written analysis code"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    # Available to executed code. Deliberately no network clients — the
+    # sandbox never fetches anything; the agent supplies all data.
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+    "plotly>=5.24",
+]
+
+[tool.uv]
+package = false

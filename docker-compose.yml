@@ -1,5 +1,8 @@
 services:
   backend:
+    networks:
+      - default
+      - isolated
     build: ./backend
     ports:
       # Host port 8000 — 8080 is commonly taken (Jenkins, Tomcat, etc).
@@ -12,6 +15,39 @@ services:
       # host directory shadows /app/.venv and the container loses its deps.
       - /app/.venv
     command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  sandbox:
+    build: ./sandbox
+    # Host port 8001 — 8000 is the backend, 8080 is commonly taken.
+    ports:
+      - "8001:8080"
+    # Nothing on this service is allowed to persist. Locally that is enforced
+    # with a read-only root plus two small tmpfs mounts; on Cloud Run the same
+    # shape is set at deploy time.
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+      - /data:size=64m,mode=0700,uid=10001,gid=10001
+    # Above the snippet RLIMIT_AS, so the rlimit trips first and the failure
+    # stays inside the snippet instead of becoming a cgroup OOM kill.
+    mem_limit: 2g
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Only the internal network, which has no route off the host. This is the
+    # local stand-in for denying egress on Cloud Run: executed code can be
+    # reached by the backend but cannot reach the internet. It is defence in
+    # depth, never the primary control — see the spec.
+    networks:
+      - isolated
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
       interval: 10s
@@ -34,3 +70,9 @@ services:
       timeout: 3s
       retries: 5
       start_period: 5s
+
+networks:
+  default:
+  # No gateway to the host, so nothing on it can reach the internet.
+  isolated:
+    internal: true
