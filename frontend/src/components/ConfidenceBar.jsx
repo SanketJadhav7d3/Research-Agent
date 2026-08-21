@@ -5,13 +5,15 @@ export default function ConfidenceBar({ history }) {
 
   const latest = history[history.length - 1]
   const pct = Math.round((latest.score ?? 0) * 100)
-  const colour = pct >= 75 ? 'var(--ok)' : pct >= 45 ? 'var(--warn)' : 'var(--bad)'
+  // terre verte / yellow ochre / madder lake
+  const colour =
+    pct >= 75 ? 'var(--terre-verte)' : pct >= 45 ? 'var(--ochre)' : 'var(--madder)'
 
   return (
     <div className="confidence">
       <div className="confidence-head">
         <span>
-          Agent confidence
+          Confidence
           {history.length > 1 && (
             <span className="round-tag"> · round {history.length}</span>
           )}
