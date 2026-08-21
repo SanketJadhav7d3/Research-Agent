@@ -112,7 +112,7 @@ body::before {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.44), 0 14px 38px rgba(0, 0, 0, 0.36);
 }
 
-textarea, select, input[type="password"] {
+textarea, select, input[type="text"], input[type="password"] {
   width: 100%;
   background: var(--surface);
   color: var(--text);
@@ -125,7 +125,9 @@ textarea, select, input[type="password"] {
   transition: border-color .18s, box-shadow .18s;
 }
 textarea { border-color: transparent; background: transparent; padding: 6px 4px; }
-textarea::placeholder { color: var(--text-faint); }
+/* Placeholders inherit nothing useful and default to near-black in some
+   browsers, which is invisible on this ground. Set them explicitly. */
+textarea::placeholder, input::placeholder { color: var(--text-faint); opacity: 1; }
 textarea:focus { outline: none; box-shadow: none; }
 select:focus, input:focus {
   outline: none;
@@ -238,6 +240,7 @@ button.ghost.active {
 .filters label span { font-size: 13px; color: var(--text-dim); font-weight: 500; }
 .filters input {
   background: var(--surface);
+  color: var(--text);
   font-size: 15px;
   padding: 9px 12px;
 }
