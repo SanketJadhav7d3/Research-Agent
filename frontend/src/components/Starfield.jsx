@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /* Rotating starfield with occasional shooting stars.
  *
@@ -89,11 +89,27 @@ function spawnShootingStar(width, height) {
   }
 }
 
+// How long the canvas takes to fade out. Must match the CSS transition, or the
+// element is removed while still visible and the fade is cut short.
+const FADE_OUT_MS = 420
+
 export default function Starfield({ enabled }) {
   const canvasRef = useRef(null)
+  // Kept mounted briefly after being switched off so the fade has something to
+  // animate. Unmounting on the same tick would make it vanish instantly.
+  const [mounted, setMounted] = useState(enabled)
 
   useEffect(() => {
-    if (!enabled) return
+    if (enabled) {
+      setMounted(true)
+      return undefined
+    }
+    const id = setTimeout(() => setMounted(false), FADE_OUT_MS)
+    return () => clearTimeout(id)
+  }, [enabled])
+
+  useEffect(() => {
+    if (!mounted) return
 
     const canvas = canvasRef.current
     if (!canvas) return
@@ -209,8 +225,14 @@ export default function Starfield({ enabled }) {
       window.removeEventListener('resize', resize)
       document.removeEventListener('visibilitychange', visibility)
     }
-  }, [enabled])
+  }, [mounted])
 
-  if (!enabled) return null
-  return <canvas ref={canvasRef} className="starfield" aria-hidden="true" />
+  if (!mounted) return null
+  return (
+    <canvas
+      ref={canvasRef}
+      className={enabled ? 'starfield' : 'starfield leaving'}
+      aria-hidden="true"
+    />
+  )
 }
