@@ -59,6 +59,15 @@ body::before {
     radial-gradient(700px 460px at 96% 0%, rgba(99, 201, 154, 0.045), transparent 60%);
 }
 
+/* Sits above the body background but below the washes and all content, so the
+   stars read as depth behind the page rather than as an overlay on it. */
+.starfield {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
 .page {
   max-width: 900px;
   margin: 0 auto;
@@ -67,6 +76,12 @@ body::before {
 
 /* --- header --------------------------------------------------------------- */
 .header { margin-bottom: 34px; }
+
+.header-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.starfield-toggle { flex: none; margin-left: 0; }
 
 .header h1 {
   margin: 0 0 11px;
