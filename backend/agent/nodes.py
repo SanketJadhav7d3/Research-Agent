@@ -24,9 +24,16 @@ from agent.tools import ALL_TOOLS, TOOLS_BY_NAME
 
 log = logging.getLogger(__name__)
 
+# Per-finding character allowances when rendering evidence for the model.
+SNIPPET_CHARS = 1_200
+DOC_CHARS = 8_000
 
-def _evidence(findings: list[dict], per_item_chars: int = 1500) -> str:
+
+def _evidence(findings: list[dict]) -> str:
     """Render findings for the model.
+
+    Documents the agent chose to open get a far larger allowance than search
+    snippets it merely received.
 
     Includes the actual content, not just the claim line: a page read stores
     thousands of characters in `snippet`, and reasoning from the claim alone
@@ -36,8 +43,11 @@ def _evidence(findings: list[dict], per_item_chars: int = 1500) -> str:
     parts = []
     for i, f in enumerate(findings, 1):
         body = (f.get("snippet") or "").strip()
-        if len(body) > per_item_chars:
-            body = body[:per_item_chars] + " [...]"
+        # A fetched document is the reason we fetched it; a search snippet is a
+        # preview. Giving both the same allowance throws away most of a PDF.
+        limit = DOC_CHARS if f.get("pages") or f.get("truncated") is not None else SNIPPET_CHARS
+        if len(body) > limit:
+            body = body[:limit] + " [...]"
         parts.append(
             f"[{i}] {f.get('title') or f.get('claim')} - {f.get('url')}\n{body}"
         )
@@ -155,6 +165,13 @@ def execute(state: AgentState) -> dict:
             "what order — the plan below is guidance, not a checklist. Skip "
             "parts already answered, follow up on anything interesting, and "
             "pursue questions the plan missed if they matter.\n\n"
+            "If the goal names a specific URL, fetch it — read_pdf for a PDF, "
+            "read_page otherwise. Searching for a document you were handed the "
+            "address of wastes a call and returns worse evidence than the "
+            "source itself.\n\n"
+            "Search snippets are short and often superficial. When a result "
+            "looks central to the question, open it rather than relying on the "
+            "preview.\n\n"
             "Call tools in parallel when the queries are independent. Stop "
             "calling tools once you have enough evidence, and then briefly "
             "summarise what you found and what is still missing."
