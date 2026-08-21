@@ -67,16 +67,27 @@ export default function ReportViewer({ report }) {
     // Citation markers render as superscript chips that jump to the source.
     a({ href, children, ...props }) {
       if (href?.startsWith('#cite-')) {
-        const n = href.slice(6)
+        const n = Number(href.slice(6))
+        const source = citations[n - 1]
+        // Clicking opens the source itself. Shift-click (or no URL) falls back
+        // to highlighting the entry in the Sources panel instead.
         return (
-          <button
-            type="button"
+          <a
             className="cite-ref"
-            title={citations[Number(n) - 1]?.title ?? `Source ${n}`}
-            onClick={() => jumpToSource(Number(n))}
+            href={source?.url || `#cite-${n}`}
+            target={source?.url ? '_blank' : undefined}
+            rel="noreferrer"
+            title={source ? `${source.title}
+${source.url}` : `Source ${n}`}
+            onClick={(e) => {
+              if (!source?.url || e.shiftKey) {
+                e.preventDefault()
+                jumpToSource(n)
+              }
+            }}
           >
             {n}
-          </button>
+          </a>
         )
       }
       return (

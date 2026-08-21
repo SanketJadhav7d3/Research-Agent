@@ -12,8 +12,9 @@ export default function App() {
       <header className="header">
         <h1>Research Agent</h1>
         <p>
-          Give it a question. It plans, chooses its own tools, searches, judges
-          how well it did, and writes a cited report.
+          Ask a research question. The agent plans its approach, chooses its own
+          tools, searches and reads sources, judges how well it did — and writes
+          a report where every claim links back to where it came from.
         </p>
       </header>
 
