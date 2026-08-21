@@ -18,6 +18,12 @@ MAX_TOOL_CALLS_PER_ROUND = 8
 MAX_TOOL_CALLS_TOTAL = 20
 MAX_MODEL_TURNS_CAP = 6
 
+# Charting gets its own budget rather than sharing the research one. Code
+# often needs a look at the data before it works, and a couple of retries
+# must not be able to starve the searches.
+MAX_SANDBOX_CALLS = 4
+MAX_CHARTS = 3
+
 
 class Settings(BaseSettings):
     # Paths are resolved from this file, not the working directory, so settings
@@ -35,6 +41,10 @@ class Settings(BaseSettings):
     # visitor supplying a key of their own.
     llm_provider: str = "google_genai"
     llm_model: str = "gemini-3.6-flash"
+
+    # Code execution service. Empty disables the feature entirely — forks
+    # without the sandbox deployed simply do not get the tool.
+    sandbox_url: str = "http://sandbox:8080"
 
     # Provider keys. Only the default provider's key needs to be set; the others
     # are supplied per-request by users who bring their own.

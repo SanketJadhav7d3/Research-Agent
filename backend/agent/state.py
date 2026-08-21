@@ -32,4 +32,5 @@ class AgentState(TypedDict, total=False):
     api_key: str
     stopped_early: bool         # True if a safety cap ended Execute, not the model
     report: str                 # Final markdown report
+    charts: list[dict]          # Figures produced by agent-written code
     citations: list[dict]       # Sources referenced by the report

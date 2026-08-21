@@ -15,13 +15,16 @@ from config import (
     MAX_MODEL_TURNS_CAP,
     MAX_TOOL_CALLS_PER_ROUND,
     MAX_TOOL_CALLS_TOTAL,
+    MAX_SANDBOX_CALLS,
+    MAX_CHARTS,
 )
-from agent import keywords
+from agent import keywords, sandbox_client
 from agent.events import emit
 from agent.llm import get_model
 from agent.schemas import ClarifiedGoal, Reflection, ResearchPlan
 from agent.state import AgentState
 from agent.tools import ALL_TOOLS, TOOLS_BY_NAME
+from agent.tools.code import make_run_python
 
 log = logging.getLogger(__name__)
 
@@ -393,6 +396,20 @@ def synthesize(state: AgentState) -> dict:
     )
     evidence = _evidence(state["findings"])
 
+    charts = state.get("charts") or []
+    chart_brief = ""
+    if charts:
+        listed = "\n".join(
+            f"[chart:{i}] {c.get('title') or 'untitled'}"
+            for i, c in enumerate(charts, 1)
+        )
+        chart_brief = (
+            f"\n\nCharts drawn from this evidence:\n{listed}\n\n"
+            "Place each marker on a line of its own where the chart belongs, "
+            "and explain in the surrounding prose what it shows. Use every "
+            "marker exactly once, and invent no others.\n"
+        )
+
     response = _model(state).invoke(
         "Write a markdown research report answering the goal, using only the "
         "evidence below. Cite sources inline as [1], [2] matching the list. Do "
@@ -403,6 +420,7 @@ def synthesize(state: AgentState) -> dict:
         f"Confidence: {state['confidence']:.2f} ({state['confidence_reason']})\n\n"
         f"Evidence:\n{evidence}\n\n"
         f"Sources:\n{numbered}"
+        f"{chart_brief}"
     )
 
     report = f"{_text(response)}\n\n## Sources\n\n{numbered}\n"
@@ -410,7 +428,153 @@ def synthesize(state: AgentState) -> dict:
         "report_ready",
         report=report,
         citations=citations,
+        charts=charts,
         total_tool_calls=len(state.get("tool_calls", [])),
         loops=state.get("iteration", 0),
     )
     return {"report": report, "citations": citations}
+
+
+VISUALIZE_SYSTEM = (
+    "You turn research evidence into charts.\n\n"
+    "You have one tool: run_python. The evidence is already loaded there as a "
+    "variable called `findings`.\n\n"
+    "The brief below names which findings carry a `data` dict and which keys "
+    "it holds. When it does, go straight to plotting — no inspection call is "
+    "needed. Inspect only when you must parse figures out of ['text'], and "
+    "then print keys, lengths and types rather than the values themselves.\n\n"
+    "You have very few calls, and each result tells you how many remain.\n\n"
+    "The environment is already prepared. pandas, numpy, plotly and matplotlib "
+    "are installed and importable. Never spend a call checking versions, "
+    "testing imports, or confirming the environment works.\n\n"
+    "Read every number out of `findings` in code — parse the text, or use the "
+    "`data` dict where a finding has one. Do not retype figures as literals in "
+    "your plotting code. A number you typed by hand is a number you can get "
+    "wrong, and a wrong number drawn as a clean chart is more convincing than "
+    "the same mistake in a sentence.\n\n"
+    "Most research questions have nothing worth charting. Producing no chart "
+    "is the correct answer unless the evidence contains real numeric series or "
+    "genuinely comparable figures. Never manufacture, estimate or interpolate "
+    "data to fill a chart — a plausible-looking chart of invented numbers is "
+    "far worse than no chart.\n\n"
+    "Chart only what a reader would gain from seeing: a trend over time, a "
+    "comparison across entities, a breakdown of a total. At most three charts. "
+    "Give each a clear title and axis labels.\n\n"
+    "When you are done, or if there is nothing to chart, stop calling tools and "
+    "say so in one sentence."
+)
+
+
+def _visualize_brief(state: AgentState) -> str:
+    """What the model is shown before it decides whether to chart anything.
+
+    Titles and sources only. The numbers stay in the sandbox, which is the
+    whole point — the model writes code that reads them, so it never has the
+    opportunity to transcribe one wrongly.
+    """
+    lines = []
+    structured = 0
+    for i, f in enumerate(state["findings"], 1):
+        if f.get("error"):
+            continue
+        title = f.get("title") or f.get("claim")
+        note = ""
+        # Naming the keys — never the values — is what removes the excuse to
+        # print the data and then retype it. The model can index straight in.
+        if isinstance(f.get("data"), dict) and f["data"]:
+            structured += 1
+            note = f"  -> findings[{i - 1}]['data'] has: {', '.join(sorted(f['data']))}"
+        elif f.get("pages"):
+            note = f"  -> {f['pages']}pp document, figures are in ['text']"
+        lines.append(f"[{i}] {title}" + (f"\n{note}" if note else ""))
+
+    hint = (
+        f"\n\n{structured} finding(s) carry a ready-made `data` dict. Chart "
+        f"from those directly — no parsing and no inspection call needed."
+        if structured else
+        "\n\nNo finding carries structured data, so any figures must be parsed "
+        "out of ['text'] in code."
+    )
+
+    return (
+        f"Research goal: {state['clarified_goal']}\n\n"
+        f"Evidence in `findings` (values are in the sandbox, deliberately not "
+        f"shown here):\n" + "\n".join(lines) + hint
+    )
+
+
+def visualize(state: AgentState) -> dict:
+    """Let the model write code to chart the evidence, if anything warrants it.
+
+    Runs after the confidence gate rather than inside the research loop:
+    charting mid-loop spends sandbox calls on evidence a later round may
+    replace.
+    """
+    if not sandbox_client.available() or not state.get("findings"):
+        return {}
+
+    emit("node_start", node="visualize")
+
+    charts: list[dict] = []
+    run_python = make_run_python(state["findings"], charts)
+    model = _model(state).bind_tools([run_python])
+
+    messages: list = [
+        SystemMessage(VISUALIZE_SYSTEM),
+        HumanMessage(_visualize_brief(state)),
+    ]
+
+    calls = 0
+    for _ in range(MAX_SANDBOX_CALLS + 1):
+        response = model.invoke(messages)
+        messages.append(response)
+
+        if not response.tool_calls:
+            break
+
+        for call in response.tool_calls:
+            if calls >= MAX_SANDBOX_CALLS:
+                messages.append(ToolMessage(
+                    content="No execution attempts remain. Stop here.",
+                    tool_call_id=call["id"],
+                ))
+                continue
+
+            calls += 1
+            purpose = call["args"].get("purpose") or "analysis"
+            emit("code_run", purpose=purpose, code=call["args"].get("code", ""),
+                 attempt=calls)
+
+            before = len(charts)
+            output = run_python.invoke(call["args"])
+
+            # Numbered from one, matching the [chart:N] markers synthesize will
+            # place in the report.
+            for offset, chart in enumerate(charts[before:]):
+                emit("chart_ready", title=chart.get("title"),
+                     format=chart.get("format"), index=before + offset + 1)
+
+            # Models spend their whole budget exploring unless told what is
+            # left. Stating it plainly after every call is what turns a
+            # meandering inspection into inspect-then-plot.
+            left = MAX_SANDBOX_CALLS - calls
+            if left == 0:
+                output += "\n\nThis was your last call. Stop now."
+            elif not charts:
+                output += (
+                    f"\n\n{left} call(s) left, and no chart yet. Draw one now "
+                    f"with what you have, or say there is nothing worth charting."
+                )
+            else:
+                output += f"\n\n{left} call(s) left."
+
+            messages.append(ToolMessage(content=output, tool_call_id=call["id"]))
+
+        if calls >= MAX_SANDBOX_CALLS:
+            log.info("sandbox budget (%d) spent", MAX_SANDBOX_CALLS)
+            break
+
+    # Cap what reaches the report regardless of how many the model produced.
+    charts = charts[:MAX_CHARTS]
+    log.info("visualize: %d call(s), %d chart(s)", calls, len(charts))
+    return {"charts": charts}

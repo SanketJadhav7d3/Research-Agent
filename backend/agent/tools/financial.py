@@ -139,6 +139,21 @@ def market_data(company_or_ticker: str) -> list[dict]:
     if summary:
         body += f"\n\nBusiness: {summary}"
 
+    # The formatted table above is for reading; this is for computing. Code in
+    # the sandbox charts these directly rather than parsing them back out of
+    # prose — a number re-read from text is a number that can be misread.
+    numeric = {
+        key: info.get(key)
+        for key in (
+            "currentPrice", "fiftyTwoWeekLow", "fiftyTwoWeekHigh", "marketCap",
+            "trailingPE", "forwardPE", "totalRevenue", "profitMargins",
+            "grossMargins", "operatingMargins", "totalDebt", "totalCash",
+            "dividendYield", "beta", "freeCashflow", "revenueGrowth",
+            "earningsGrowth", "returnOnEquity", "debtToEquity",
+        )
+        if isinstance(info.get(key), (int, float))
+    }
+
     log.info("market data for %s (%s)", name, symbol)
     return [
         {
@@ -147,5 +162,7 @@ def market_data(company_or_ticker: str) -> list[dict]:
             "url": SOURCE_URL.format(symbol=symbol),
             "title": f"{name} ({symbol}) — Yahoo Finance",
             "ticker": symbol,
+            "currency": currency,
+            "data": numeric,
         }
     ]

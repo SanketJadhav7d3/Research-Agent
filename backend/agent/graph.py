@@ -3,7 +3,7 @@
 Fixed outer skeleton, free inner execution: the sequence of nodes is always
 guaranteed, while the decisions inside Execute are the model's.
 
-    clarify -> plan -> execute -> reflect -> synthesize
+    clarify -> plan -> execute -> reflect -> visualize -> synthesize
 
 Reflect does not always continue to synthesize. If it scores its own work
 below the threshold and iterations remain, control returns to execute for
@@ -14,7 +14,7 @@ the research is actually going.
 from langgraph.graph import END, StateGraph
 
 from agent.confidence import should_continue
-from agent.nodes import clarify, execute, plan, reflect, synthesize
+from agent.nodes import clarify, execute, plan, reflect, synthesize, visualize
 from agent.state import AgentState
 
 
@@ -25,6 +25,7 @@ def build_graph():
     builder.add_node("plan", plan)
     builder.add_node("execute", execute)
     builder.add_node("reflect", reflect)
+    builder.add_node("visualize", visualize)
     builder.add_node("synthesize", synthesize)
 
     builder.set_entry_point("clarify")
@@ -35,8 +36,12 @@ def build_graph():
     builder.add_conditional_edges(
         "reflect",
         should_continue,
-        {"execute": "execute", "synthesize": "synthesize"},
+        # Charting happens once the evidence is settled, not inside the loop:
+        # a chart drawn mid-research may be plotting data a later round
+        # replaces.
+        {"execute": "execute", "synthesize": "visualize"},
     )
+    builder.add_edge("visualize", "synthesize")
     builder.add_edge("synthesize", END)
 
     return builder.compile()
