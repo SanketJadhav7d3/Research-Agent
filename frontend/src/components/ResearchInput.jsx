@@ -46,6 +46,11 @@ export default function ResearchInput({ onStart, onStop, status }) {
   }, [])
 
   const running = status === 'running'
+  // A rewrite in flight will replace whatever is in the box when it lands, so
+  // everything that reads or writes the goal is held until it does. Otherwise
+  // a user can start a run against text that is about to change under them, or
+  // lose what they were typing.
+  const busy = running || improving
   const needsKey = providers && provider && provider !== providers.default
   const credentials = needsKey ? { provider, api_key: apiKey } : {}
 
@@ -76,7 +81,7 @@ export default function ResearchInput({ onStart, onStop, status }) {
 
   const submit = (e) => {
     e.preventDefault()
-    if (!goal.trim() || running) return
+    if (!goal.trim() || busy) return
     onStart({
       goal: goal.trim(),
       provider: needsKey ? provider : undefined,
@@ -95,13 +100,13 @@ export default function ResearchInput({ onStart, onStop, status }) {
         onChange={(e) => setGoalManually(e.target.value)}
         placeholder="Ask a research question…"
         rows={3}
-        disabled={running}
+        disabled={busy}
       />
 
       <div className="examples">
         {EXAMPLES.map((ex) => (
           <button key={ex} type="button" className="chip"
-                  onClick={() => setGoalManually(ex)} disabled={running}>
+                  onClick={() => setGoalManually(ex)} disabled={busy}>
             {ex.length > 52 ? `${ex.slice(0, 52)}…` : ex}
           </button>
         ))}
@@ -166,7 +171,7 @@ export default function ResearchInput({ onStart, onStop, status }) {
           type="button"
           className="ghost"
           onClick={improve}
-          disabled={!goal.trim() || improving || running}
+          disabled={!goal.trim() || busy}
           title="Rewrite the question to be clearer and more specific"
         >
           {improving ? 'Improving…' : '✨ Improve'}
@@ -176,6 +181,7 @@ export default function ResearchInput({ onStart, onStop, status }) {
           type="button"
           className={showFilters ? 'ghost active' : 'ghost'}
           onClick={() => setShowFilters((v) => !v)}
+          disabled={improving}
         >
           Filters{filterCount > 0 && ` · ${filterCount}`}
         </button>
@@ -204,7 +210,9 @@ export default function ResearchInput({ onStart, onStop, status }) {
         {running ? (
           <button type="button" className="stop" onClick={onStop}>Stop</button>
         ) : (
-          <button type="submit" disabled={!goal.trim()}>Research</button>
+          <button type="submit" disabled={!goal.trim() || improving}>
+            {improving ? 'Improving…' : 'Research'}
+          </button>
         )}
       </div>
 
