@@ -42,6 +42,24 @@ const SHOOTING_CHANCE_PER_SECOND = 0.15
 const SHOOTING_SPEED = 0.55        // px per millisecond
 const SHOOTING_TRAIL = 120         // px
 
+// The arrival fade is done here in the canvas rather than in CSS.
+//
+// It started as a CSS animation, which meant a reduced-motion media query
+// collapsed it to nothing — the same trap that once froze the rotation
+// outright. Anyone with Windows' animation effects switched off saw the field
+// snap on at full strength with no way to tell why. Driving it from the draw
+// loop puts the behaviour in one place, where no stylesheet or OS setting can
+// quietly override it, and it costs a single assignment per frame.
+const FADE_IN_MS = 2600
+const FADE_OUT_MS = 400
+// Let the page paint before the background starts arriving, so the content is
+// what lands first.
+const INTRO_DELAY_MS = 300
+
+// Unmount slightly after the fade completes, so the canvas is never removed
+// while it still has something on it.
+const UNMOUNT_AFTER_MS = FADE_OUT_MS + 60
+
 function createStars(width, height) {
   // Full diagonal, so the field runs past the edges of the viewport and stars
   // rotate into view rather than merely across it.
@@ -89,30 +107,41 @@ function spawnShootingStar(width, height) {
   }
 }
 
-// How long the canvas takes to fade out. Must match the CSS transition, or the
-// element is removed while still visible and the fade is cut short.
-const FADE_OUT_MS = 420
+// Slow at both ends. Linear fading reads as mechanical: most of the brightness
+// lands in the first moments and the tail is imperceptible.
+const smoothstep = (t) => t * t * (3 - 2 * t)
 
 export default function Starfield({ enabled }) {
   const canvasRef = useRef(null)
+  // Read inside the draw loop so a toggle changes the fade target without
+  // tearing down and restarting the animation.
+  const enabledRef = useRef(enabled)
+
   // Kept mounted briefly after being switched off so the fade has something to
   // animate. Unmounting on the same tick would make it vanish instantly.
   const [mounted, setMounted] = useState(enabled)
+
+  // Updated in an effect rather than during render: a render can be discarded
+  // or replayed, and this ref drives an animation that must not see a value
+  // React later throws away.
+  useEffect(() => {
+    enabledRef.current = enabled
+  }, [enabled])
 
   useEffect(() => {
     if (enabled) {
       setMounted(true)
       return undefined
     }
-    const id = setTimeout(() => setMounted(false), FADE_OUT_MS)
+    const id = setTimeout(() => setMounted(false), UNMOUNT_AFTER_MS)
     return () => clearTimeout(id)
   }, [enabled])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted) return undefined
 
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas) return undefined
     const ctx = canvas.getContext('2d')
 
     let stars = []
@@ -125,6 +154,10 @@ export default function Starfield({ enabled }) {
     // where it stopped instead of jumping forward.
     let rotation = 0
     let last = null
+    // Current field opacity, 0 to 1, and the delay still to run before it
+    // starts climbing.
+    let fade = 0
+    let delay = INTRO_DELAY_MS
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -142,15 +175,15 @@ export default function Starfield({ enabled }) {
       const { x, y, vx, vy, life, span } = shooting
       // Fade in over the first fifth of its life, out over the rest.
       const t = life / span
-      const fade = t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8
+      const trail = t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8
 
       const len = Math.hypot(vx, vy)
       const tailX = x - (vx / len) * SHOOTING_TRAIL
       const tailY = y - (vy / len) * SHOOTING_TRAIL
 
       const gradient = ctx.createLinearGradient(x, y, tailX, tailY)
-      gradient.addColorStop(0, `rgba(255, 255, 255, ${0.85 * fade})`)
-      gradient.addColorStop(0.35, `rgba(180, 200, 255, ${0.3 * fade})`)
+      gradient.addColorStop(0, `rgba(255, 255, 255, ${0.85 * trail})`)
+      gradient.addColorStop(0.35, `rgba(180, 200, 255, ${0.3 * trail})`)
       gradient.addColorStop(1, 'rgba(180, 200, 255, 0)')
 
       ctx.strokeStyle = gradient
@@ -162,6 +195,19 @@ export default function Starfield({ enabled }) {
       ctx.stroke()
     }
 
+    const advanceFade = (elapsed) => {
+      if (delay > 0) {
+        delay -= elapsed
+        return
+      }
+      const target = enabledRef.current ? 1 : 0
+      if (fade === target) return
+      const step = elapsed / (target > fade ? FADE_IN_MS : FADE_OUT_MS)
+      fade = target > fade
+        ? Math.min(target, fade + step)
+        : Math.max(target, fade - step)
+    }
+
     const draw = (now) => {
       // Clamped so a stutter or a resumed tab cannot produce a lurch.
       const elapsed = last === null ? 0 : Math.min(now - last, 100)
@@ -171,32 +217,48 @@ export default function Starfield({ enabled }) {
       const cy = height / 2
       ctx.clearRect(0, 0, width, height)
 
+      advanceFade(elapsed)
+
       // One angle for the entire field, advanced once per frame. This is what
       // makes it turn as a single body.
       rotation += ROTATION_SPEED * elapsed
 
-      for (const star of stars) {
-        const angle = star.angle + rotation
-        const x = cx + Math.cos(angle) * star.radius
-        const y = cy + Math.sin(angle) * star.radius
+      if (fade > 0) {
+        // One assignment scales everything drawn below, stars and meteors
+        // alike, without touching any per-star arithmetic.
+        ctx.globalAlpha = smoothstep(fade)
 
-        // Skip the arithmetic for stars swung outside the viewport.
-        if (x < -4 || x > width + 4 || y < -4 || y > height + 4) continue
+        for (const star of stars) {
+          const angle = star.angle + rotation
+          const x = cx + Math.cos(angle) * star.radius
+          const y = cy + Math.sin(angle) * star.radius
 
-        const flicker = 0.45 + Math.abs(Math.sin(now * FLICKER_SPEED + star.phase)) * 0.55
-        ctx.fillStyle = `rgba(${star.hue}, ${star.alpha * flicker})`
-        ctx.beginPath()
-        ctx.arc(x, y, star.size, 0, Math.PI * 2)
-        ctx.fill()
+          // Skip the arithmetic for stars swung outside the viewport.
+          if (x < -4 || x > width + 4 || y < -4 || y > height + 4) continue
+
+          const flicker =
+            0.45 + Math.abs(Math.sin(now * FLICKER_SPEED + star.phase)) * 0.55
+          ctx.fillStyle = `rgba(${star.hue}, ${star.alpha * flicker})`
+          ctx.beginPath()
+          ctx.arc(x, y, star.size, 0, Math.PI * 2)
+          ctx.fill()
+        }
+
+        if (shooting) drawShootingStar()
+        ctx.globalAlpha = 1
       }
 
+      // Meteors keep their own clock whether or not they are being drawn, so
+      // one cannot be spawned during the fade and then appear mid-flight.
       if (shooting) {
         shooting.x += shooting.vx * elapsed
         shooting.y += shooting.vy * elapsed
         shooting.life += elapsed
         if (shooting.life >= shooting.span) shooting = null
-        else drawShootingStar()
-      } else if (Math.random() < (SHOOTING_CHANCE_PER_SECOND * elapsed) / 1000) {
+      } else if (
+        fade > 0.5 &&
+        Math.random() < (SHOOTING_CHANCE_PER_SECOND * elapsed) / 1000
+      ) {
         shooting = spawnShootingStar(width, height)
       }
 
@@ -228,11 +290,5 @@ export default function Starfield({ enabled }) {
   }, [mounted])
 
   if (!mounted) return null
-  return (
-    <canvas
-      ref={canvasRef}
-      className={enabled ? 'starfield' : 'starfield leaving'}
-      aria-hidden="true"
-    />
-  )
+  return <canvas ref={canvasRef} className="starfield" aria-hidden="true" />
 }

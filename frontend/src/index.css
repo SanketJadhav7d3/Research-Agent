@@ -91,35 +91,15 @@ body::before {
 /* Sits above the body background but below the washes and all content, so the
    stars read as depth behind the page rather than as an overlay on it.
 
-   It fades up rather than appearing at full strength. A field of moving points
-   snapping into existence on load reads as a glitch; arriving over a couple of
-   seconds reads as your eyes adjusting to the dark. The short delay lets the
-   page paint first, so the content is what lands, not the background. */
+   No opacity rules here on purpose. The arrival fade lives in the draw loop in
+   Starfield.jsx: as a CSS animation it was silently collapsed to nothing by a
+   reduced-motion media query, which is exactly the class of override this
+   element should not be subject to. */
 .starfield {
   position: fixed;
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  animation: starfield-in 2.2s cubic-bezier(.33, 0, .2, 1) 250ms both;
-}
-
-/* Switched off: fade down over FADE_OUT_MS in Starfield.jsx, which keeps the
-   canvas mounted just long enough for this to play. */
-.starfield.leaving {
-  animation: none;
-  opacity: 0;
-  transition: opacity 420ms ease-in;
-}
-
-@keyframes starfield-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-/* Someone who has asked their OS for less motion still gets the field, but
-   without the slow reveal. */
-@media (prefers-reduced-motion: reduce) {
-  .starfield { animation-duration: 1ms; animation-delay: 0ms; }
 }
 
 .page {
