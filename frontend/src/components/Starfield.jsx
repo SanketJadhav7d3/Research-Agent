@@ -13,10 +13,10 @@ import { useEffect, useRef } from 'react'
 const DENSITY = 1 / 9000   // stars per square pixel
 const MAX_STARS = 320
 
-// Radians per millisecond. One full revolution takes about six minutes —
-// slow enough that it never pulls the eye off the page, but the movement is
-// unmistakable if you watch a star near the edge for a moment.
-const ROTATION_SPEED = (Math.PI * 2) / 360_000
+// Radians per millisecond. One full revolution takes two minutes —
+// slow enough that it never pulls the eye off the page, but plainly visible:
+// a star near the edge of a wide window moves about 25px per second.
+const ROTATION_SPEED = (Math.PI * 2) / 120_000
 
 const TWINKLE_SPEED = 0.0012
 
