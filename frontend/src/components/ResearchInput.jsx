@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
 import { fetchProviders, improvePrompt } from '../lib/api'
 
+// The first two draw charts, because market data comes back as figures the
+// agent can plot directly. The last two do not, and that is deliberate: a
+// question with nothing numeric in it should produce prose and no chart, and
+// the demo is more honest for showing both.
 const EXAMPLES = [
+  'Compare Nvidia, AMD and Intel on valuation and profitability',
+  'How does Apple’s margin profile compare with Microsoft’s?',
   'What are the key risks of the EU AI Act for LLM startups?',
   'What happened to SVB and what were the regulatory consequences?',
-  'Compare the revenue models of Anthropic, OpenAI and Mistral',
 ]
 
 const LABELS = {
