@@ -578,3 +578,38 @@ button.ghost.active {
   .chart-plot { height: 280px; }
   .trace-chart { margin-left: 0; }
 }
+
+/* --- collapsible sources --------------------------------------------------- */
+.sources-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.sources-head .section-title { margin-bottom: 10px; }
+
+.sources-count {
+  display: inline-block;
+  margin-left: 5px; padding: 1px 7px;
+  background: var(--surface-2); color: var(--text-dim);
+  border-radius: 999px; font-size: 11.5px;
+  font-variant-numeric: tabular-nums; letter-spacing: 0;
+}
+
+/* Full-width so the cut list reads as deliberately truncated rather than
+   accidentally short. */
+.sources-more {
+  display: block; width: 100%;
+  margin: 6px 0 0;
+  padding: 9px 12px;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: 14px; font-weight: 500;
+  cursor: pointer;
+  transition: border-color .16s, color .16s, background .16s;
+}
+.sources-more:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--accent-ring);
+  color: var(--accent-hover);
+}

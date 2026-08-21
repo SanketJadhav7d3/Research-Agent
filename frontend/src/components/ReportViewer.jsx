@@ -40,6 +40,10 @@ function linkCitations(markdown) {
   return markdown.replace(/\[(\d+)\](?!\()/g, '[$1](#cite-$1)')
 }
 
+// A research run routinely gathers twenty or more sources, which pushes the
+// report itself off the screen. Show enough to be useful, hide the tail.
+const COLLAPSED_SOURCES = 6
+
 function hostOf(url) {
   try {
     return new URL(url).hostname.replace(/^www\./, '')
@@ -52,6 +56,7 @@ export default function ReportViewer({ report }) {
   const [copied, setCopied] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [active, setActive] = useState(null)
+  const [showAll, setShowAll] = useState(false)
 
   const segments = useMemo(
     () => (report ? splitOnCharts(linkCitations(splitReport(report.report))) : []),
@@ -60,9 +65,15 @@ export default function ReportViewer({ report }) {
 
   const jumpToSource = useCallback((n) => {
     setActive(n)
-    document
-      .getElementById(`cite-${n}`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    // A citation can point at a source the collapsed list is hiding, in which
+    // case there is no element to scroll to. Expand first, then jump on the
+    // next frame once the entry actually exists.
+    if (n > COLLAPSED_SOURCES) setShowAll(true)
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`cite-${n}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
     // Clear the highlight so a later jump to the same source still registers.
     setTimeout(() => setActive((cur) => (cur === n ? null : cur)), 2200)
   }, [])
@@ -71,6 +82,8 @@ export default function ReportViewer({ report }) {
 
   const citations = report.citations ?? []
   const charts = report.charts ?? []
+  const visibleCitations = showAll ? citations : citations.slice(0, COLLAPSED_SOURCES)
+  const hidden = citations.length - visibleCitations.length
   const words = report.report.split(/\s+/).length
 
   const copy = async () => {
@@ -181,9 +194,20 @@ ${source.url}` : `Source ${n}`}
 
       {citations.length > 0 && (
         <>
-          <h3 className="section-title sources-title">Sources</h3>
+          <div className="sources-head">
+            <h3 className="section-title sources-title">
+              Sources <span className="sources-count">{citations.length}</span>
+            </h3>
+            {citations.length > COLLAPSED_SOURCES && (
+              <button className="ghost" onClick={() => setShowAll((v) => !v)}>
+                {showAll
+                  ? 'Show fewer'
+                  : `Show all ${citations.length}`}
+              </button>
+            )}
+          </div>
           <ol className="citations">
-            {citations.map((c, i) => (
+            {visibleCitations.map((c, i) => (
               <li
                 key={i}
                 id={`cite-${i + 1}`}
@@ -199,6 +223,11 @@ ${source.url}` : `Source ${n}`}
               </li>
             ))}
           </ol>
+          {!showAll && hidden > 0 && (
+            <button className="sources-more" onClick={() => setShowAll(true)}>
+              {hidden} more source{hidden === 1 ? '' : 's'}
+            </button>
+          )}
         </>
       )}
     </section>
