@@ -34,10 +34,31 @@ function splitReport(markdown) {
   return idx === -1 ? markdown : markdown.slice(0, idx).trimEnd()
 }
 
-// Turn bare [1] markers into links to the matching source. The negative
-// lookahead leaves real markdown links like [text](url) alone.
-function linkCitations(markdown) {
-  return markdown.replace(/\[(\d+)\](?!\()/g, '[$1](#cite-$1)')
+// Turn citation markers into links to the matching source.
+//
+// Grouped markers are handled first: the model routinely writes [5, 7, 9] for
+// a claim backed by several sources, and matching only a lone number left the
+// whole group sitting in the prose as plain text.
+//
+// Every number has to be a real source index for the group to be converted.
+// Without that check a year range like [2024, 2025] would become citation
+// links to sources that do not exist — and prose is full of bracketed numbers
+// that are not citations.
+function linkCitations(markdown, sourceCount) {
+  const real = (n) => Number(n) >= 1 && Number(n) <= sourceCount
+
+  return markdown
+    // [5, 7, 9] -> three separate chips
+    .replace(/\[(\d+(?:\s*,\s*\d+)+)\](?!\()/g, (whole, group) => {
+      const numbers = group.split(',').map((n) => n.trim())
+      return numbers.every(real)
+        ? numbers.map((n) => `[${n}](#cite-${n})`).join('')
+        : whole
+    })
+    // [5] -> one chip. Already-linked markers are skipped by the lookahead.
+    .replace(/\[(\d+)\](?!\()/g, (whole, n) =>
+      real(n) ? `[${n}](#cite-${n})` : whole,
+    )
 }
 
 // A research run routinely gathers twenty or more sources, which pushes the
@@ -59,7 +80,12 @@ export default function ReportViewer({ report }) {
   const [showAll, setShowAll] = useState(false)
 
   const segments = useMemo(
-    () => (report ? splitOnCharts(linkCitations(splitReport(report.report))) : []),
+    () =>
+      report
+        ? splitOnCharts(
+            linkCitations(splitReport(report.report), (report.citations ?? []).length),
+          )
+        : [],
     [report],
   )
 
