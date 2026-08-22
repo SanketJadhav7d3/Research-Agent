@@ -1,4 +1,10 @@
+
+
 # Research Agent
+
+
+https://github.com/user-attachments/assets/158e9447-b368-4bce-982b-7d3b5a71c1fa
+
 
 An agentic research assistant: give it a research goal and it plans, selects
 tools, searches, reads sources, scores its own confidence, loops when the
