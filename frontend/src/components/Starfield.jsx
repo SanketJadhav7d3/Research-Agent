@@ -30,8 +30,8 @@ import { useEffect, useRef, useState } from 'react'
 const VISIBLE_DENSITY = 1 / 6200
 const MAX_STARS = 3200
 
-// Radians per millisecond. One full revolution takes about 8 minutes.
-const ROTATION_SPEED = (Math.PI * 2) / 480_000
+// Radians per millisecond. One full revolution takes about 10 minutes.
+const ROTATION_SPEED = (Math.PI * 2) / 600_000
 
 const FLICKER_SPEED = 0.0015
 
