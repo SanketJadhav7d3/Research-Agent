@@ -30,6 +30,16 @@ server {
         add_header Cache-Control "public, immutable";
     }
 
+    # Media served from the build root keeps its original name, so it must not
+    # be marked immutable — replacing the demo video would leave cached clients
+    # on the old one forever. A week is long enough to matter and short enough
+    # to recover from. Not gzipped: mp4 is already compressed, and compressing
+    # it again costs CPU to make it marginally larger.
+    location ~* \.(mp4|webm|png|jpe?g|gif|svg|ico|woff2?)$ {
+        expires 7d;
+        add_header Cache-Control "public";
+    }
+
     # Proxy API calls to the backend.
     #   Compose:    BACKEND_URL=http://backend:8080  (private network)
     #   Cloud Run:  BACKEND_URL=https://<backend>.run.app

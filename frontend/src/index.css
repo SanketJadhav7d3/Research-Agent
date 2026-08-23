@@ -111,10 +111,6 @@ body::before {
 /* --- header --------------------------------------------------------------- */
 .header { margin-bottom: 34px; }
 
-.header-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 16px; flex-wrap: wrap;
-}
 /* Gold rather than periwinkle: this is the one control that talks about the
    stars, so it borrows starlight instead of the interface accent. */
 .starfield-toggle { flex: none; margin-left: 0; }
@@ -617,4 +613,93 @@ button.ghost.active {
   background: var(--surface-2);
   border-color: var(--accent-ring);
   color: var(--accent-hover);
+}
+
+/* --- top bar --------------------------------------------------------------- */
+/* Shared by both pages, so the chrome and the background are the two things
+   that stay put while the content underneath changes. */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px 22px 0;
+}
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+
+.brand {
+  background: none; border: 0; margin: 0; padding: 4px 0;
+  color: var(--text); font: inherit; font-size: 15.5px; font-weight: 650;
+  letter-spacing: -0.01em; cursor: pointer;
+  transition: color .16s;
+}
+.brand:hover:not(:disabled) { background: none; color: var(--accent-hover); }
+
+/* --- home ------------------------------------------------------------------ */
+.home {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 56px 22px 120px;
+}
+
+.home-title {
+  margin: 0 0 20px;
+  font-size: clamp(34px, 5.4vw, 58px);
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.home-lead {
+  margin: 0 0 30px;
+  max-width: 60ch;
+  font-size: 18.5px;
+  color: var(--text-dim);
+}
+
+.home-actions {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+/* The page's one primary button, so it overrides the global margin-left:auto
+   that pushes Research to the right of the composer row. */
+.home-actions button { margin-left: 0; padding: 12px 28px; font-size: 16px; }
+
+.home-link {
+  color: var(--text-dim); text-decoration: none;
+  font-size: 15px; transition: color .16s;
+}
+.home-link:hover { color: var(--accent-hover); }
+
+.home-demo {
+  margin: 0;
+  padding: 12px 12px 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.home-demo video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  background: #000;
+}
+
+.home-demo figcaption {
+  padding: 12px 4px 14px;
+  font-size: 14px;
+  color: var(--text-faint);
+}
+
+@media (max-width: 640px) {
+  .topbar { padding: 16px 16px 0; }
+  .home { padding: 36px 16px 80px; }
+  .home-lead { font-size: 17px; }
+  .home-actions { gap: 14px; }
+  .home-actions button { width: 100%; }
 }

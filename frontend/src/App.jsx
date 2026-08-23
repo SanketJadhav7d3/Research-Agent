@@ -1,48 +1,54 @@
-import ResearchInput from './components/ResearchInput'
-import AgentTrace from './components/AgentTrace'
-import ConfidenceBar from './components/ConfidenceBar'
-import ReportViewer from './components/ReportViewer'
 import Starfield from './components/Starfield'
+import Home from './pages/Home'
+import Research from './pages/Research'
 import { useAgentStream } from './hooks/useAgentStream'
+import { useRoute } from './hooks/useRoute'
 import { useStarfield } from './hooks/useStarfield'
 
 export default function App() {
-  const { events, status, report, confidence, error, start, stop } = useAgentStream()
+  const agent = useAgentStream()
   const [stars, toggleStars] = useStarfield()
+  const [route, navigate] = useRoute()
+
+  const onApp = route === '/app'
 
   return (
     <>
+      {/* Mounted above the route switch on purpose. Rendering it inside a page
+          would unmount and rebuild it on every navigation, resetting the
+          rotation to zero and replaying the fade-in — the background has to be
+          the one thing that does not change between pages. */}
       <Starfield enabled={stars} />
 
-      <div className="page">
-        <header className="header">
-          <div className="header-row">
-            <h1>Research Agent</h1>
-            <button
-              type="button"
-              className="ghost starfield-toggle"
-              onClick={toggleStars}
-              aria-pressed={stars}
-              title={stars ? 'Turn off the animated background' : 'Turn on the animated background'}
-            >
-              {stars ? '✦ Stars on' : '✧ Stars off'}
+      <nav className="topbar">
+        <button type="button" className="brand" onClick={() => navigate('/')}>
+          ✦ Research Agent
+        </button>
+
+        <div className="topbar-right">
+          {onApp ? (
+            <button type="button" className="ghost" onClick={() => navigate('/')}>
+              Home
             </button>
-          </div>
-          <p>
-            Ask a research question. The agent plans its approach, picks its own
-            tools, searches and reads sources, judges how well it did, and writes
-            a report where every claim links back to where it came from.
-          </p>
-        </header>
+          ) : (
+            <button type="button" className="ghost" onClick={() => navigate('/app')}>
+              Open the app
+            </button>
+          )}
 
-        <ResearchInput onStart={start} onStop={stop} status={status} />
+          <button
+            type="button"
+            className="ghost starfield-toggle"
+            onClick={toggleStars}
+            aria-pressed={stars}
+            title={stars ? 'Turn off the animated background' : 'Turn on the animated background'}
+          >
+            {stars ? '✦ Stars on' : '✧ Stars off'}
+          </button>
+        </div>
+      </nav>
 
-        {error && <div className="banner error">⚠ {error}</div>}
-
-        <ConfidenceBar history={confidence} />
-        <AgentTrace events={events} status={status} />
-        <ReportViewer report={report} />
-      </div>
+      {onApp ? <Research {...agent} /> : <Home navigate={navigate} />}
     </>
   )
 }
