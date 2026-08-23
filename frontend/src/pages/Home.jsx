@@ -1,11 +1,7 @@
 export default function Home({ navigate }) {
   return (
     <main className="home">
-      <h1 className="home-title">
-        An agent that researches,
-        <br />
-        then shows its work.
-      </h1>
+      <h1 className="home-title">Research Agent</h1>
 
       <p className="home-lead">
         Ask a research question. It plans an approach, chooses its own tools,
