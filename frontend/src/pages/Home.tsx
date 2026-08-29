@@ -1,4 +1,4 @@
-export default function Home({ navigate }) {
+export default function Home({ navigate }: { navigate: (to: string) => void }) {
   return (
     <main className="home">
       <h1 className="home-title">Research Agent</h1>

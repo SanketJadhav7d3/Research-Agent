@@ -1,9 +1,11 @@
 // Backend client. All calls go to /api, which nginx proxies to the backend, so
 // the browser only ever talks to one origin and no CORS preflight is involved.
 
+import type { ImprovePromptResponse, ProvidersResponse, StreamResearchBody } from '../types'
+
 const BASE = '/api'
 
-export async function fetchProviders() {
+export async function fetchProviders(): Promise<ProvidersResponse> {
   const res = await fetch(`${BASE}/providers`)
   if (!res.ok) throw new Error(`providers: HTTP ${res.status}`)
   return res.json()
@@ -11,7 +13,9 @@ export async function fetchProviders() {
 
 // Asks the model to rewrite a research question. One call, so a plain JSON
 // response rather than a stream. Returns { improved, changes }.
-export async function improvePrompt(body) {
+export async function improvePrompt(
+  body: { goal: string } & Partial<StreamResearchBody>,
+): Promise<ImprovePromptResponse> {
   const res = await fetch(`${BASE}/improve-prompt`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -26,7 +30,10 @@ export async function improvePrompt(body) {
 
 // Streams the agent trace. POST rather than EventSource so the user's own API
 // key travels in the request body, never in a URL where logs would capture it.
-export async function streamResearch(body, { onEvent, signal }) {
+export async function streamResearch(
+  body: StreamResearchBody,
+  { onEvent, signal }: { onEvent: (name: string, data: Record<string, unknown>) => void; signal?: AbortSignal },
+): Promise<void> {
   const res = await fetch(`${BASE}/research`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -39,7 +46,7 @@ export async function streamResearch(body, { onEvent, signal }) {
     throw new Error(`HTTP ${res.status}${detail ? ` — ${detail.slice(0, 200)}` : ''}`)
   }
 
-  const reader = res.body.getReader()
+  const reader = res.body!.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
 
@@ -57,7 +64,7 @@ export async function streamResearch(body, { onEvent, signal }) {
     for (const frame of frames) {
       if (!frame.trim()) continue
       let name = 'message'
-      const dataLines = []
+      const dataLines: string[] = []
       for (const line of frame.split('\n')) {
         if (line.startsWith('event:')) name = line.slice(6).trim()
         else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim())

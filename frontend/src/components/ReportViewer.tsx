@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import ReportChart from './ReportChart'
 import { toDataUri } from '../lib/charts'
+import type { ReportData } from '../types'
 
 // Charts are placed by markers the agent wrote at the start of a line.
 // Splitting the prose around them is simpler and more predictable than a
@@ -14,7 +15,9 @@ import { toDataUri } from '../lib/charts'
 // here meant the marker fell through as literal text.
 const CHART_LINE = /^[ \t]*\[chart:(\d+)\][^\n]*$/gm
 
-function splitOnCharts(markdown) {
+type Segment = { kind: 'markdown'; text: string } | { kind: 'chart'; index: number }
+
+function splitOnCharts(markdown: string): Segment[] {
   const parts = markdown.split(CHART_LINE)
   // split() with one capture group alternates: text, number, text, number…
   return parts.map((part, i) =>
@@ -29,7 +32,7 @@ function splitOnCharts(markdown) {
 // The agent appends its own Sources section to the markdown so that a copied or
 // exported report is self-contained. On screen we render that list ourselves as
 // a linked panel, so strip it from the prose to avoid showing it twice.
-function splitReport(markdown) {
+function splitReport(markdown: string): string {
   const idx = markdown.indexOf('## Sources')
   return idx === -1 ? markdown : markdown.slice(0, idx).trimEnd()
 }
@@ -44,15 +47,15 @@ function splitReport(markdown) {
 // Without that check a year range like [2024, 2025] would become citation
 // links to sources that do not exist — and prose is full of bracketed numbers
 // that are not citations.
-function linkCitations(markdown, sourceCount) {
-  const real = (n) => Number(n) >= 1 && Number(n) <= sourceCount
+function linkCitations(markdown: string, sourceCount: number): string {
+  const real = (n: string | number) => Number(n) >= 1 && Number(n) <= sourceCount
 
   return markdown
     // [5, 7, 9] -> three separate chips
     .replace(/\[(\d+(?:\s*,\s*\d+)+)\](?!\()/g, (whole, group) => {
-      const numbers = group.split(',').map((n) => n.trim())
+      const numbers = group.split(',').map((n: string) => n.trim())
       return numbers.every(real)
-        ? numbers.map((n) => `[${n}](#cite-${n})`).join('')
+        ? numbers.map((n: string) => `[${n}](#cite-${n})`).join('')
         : whole
     })
     // [5] -> one chip. Already-linked markers are skipped by the lookahead.
@@ -65,7 +68,7 @@ function linkCitations(markdown, sourceCount) {
 // report itself off the screen. Show enough to be useful, hide the tail.
 const COLLAPSED_SOURCES = 6
 
-function hostOf(url) {
+function hostOf(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, '')
   } catch {
@@ -73,10 +76,10 @@ function hostOf(url) {
   }
 }
 
-export default function ReportViewer({ report }) {
+export default function ReportViewer({ report }: { report: ReportData | null }) {
   const [copied, setCopied] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [active, setActive] = useState(null)
+  const [active, setActive] = useState<number | null>(null)
   const [showAll, setShowAll] = useState(false)
 
   const segments = useMemo(
@@ -89,7 +92,7 @@ export default function ReportViewer({ report }) {
     [report],
   )
 
-  const jumpToSource = useCallback((n) => {
+  const jumpToSource = useCallback((n: number) => {
     setActive(n)
     // A citation can point at a source the collapsed list is hiding, in which
     // case there is no element to scroll to. Expand first, then jump on the
@@ -148,7 +151,7 @@ export default function ReportViewer({ report }) {
     URL.revokeObjectURL(url)
   }
 
-  const components = {
+  const components: Components = {
     // Citation markers render as superscript chips that jump to the source.
     a({ href, children, ...props }) {
       if (href?.startsWith('#cite-')) {
@@ -162,8 +165,7 @@ export default function ReportViewer({ report }) {
             href={source?.url || `#cite-${n}`}
             target={source?.url ? '_blank' : undefined}
             rel="noreferrer"
-            title={source ? `${source.title}
-${source.url}` : `Source ${n}`}
+            title={source ? `${source.title}\n${source.url}` : `Source ${n}`}
             onClick={(e) => {
               if (!source?.url || e.shiftKey) {
                 e.preventDefault()
@@ -191,7 +193,7 @@ ${source.url}` : `Source ${n}`}
           <span>
             {words.toLocaleString()} words · {citations.length} sources ·{' '}
             {report.total_tool_calls} tool calls
-            {report.loops > 1 && ` · ${report.loops} rounds`}
+            {report.loops && report.loops > 1 && ` · ${report.loops} rounds`}
           </span>
           <button className="ghost" onClick={copy}>
             {copied ? 'Copied' : 'Copy'}

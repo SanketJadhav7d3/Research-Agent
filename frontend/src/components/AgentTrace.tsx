@@ -1,8 +1,12 @@
 import { useEffect, useRef } from 'react'
 import ToolCallCard from './ToolCallCard'
 import CodeRunCard from './CodeRunCard'
+import type {
+  AgentEvent, AgentStatus, ChartReadyEvent, CodeRunEvent, GateEvent,
+  ResultsFilteredEvent, ToolCallEvent, ToolResultEvent, ToolSkippedEvent,
+} from '../types'
 
-const NODE_LABELS = {
+const NODE_LABELS: Record<string, string> = {
   clarify: 'Clarifying the question',
   plan: 'Planning sub-questions',
   execute: 'Gathering evidence',
@@ -11,17 +15,27 @@ const NODE_LABELS = {
   synthesize: 'Writing the report',
 }
 
+type Row =
+  | { kind: 'node'; node: string; timestamp?: string }
+  | { kind: 'tool'; call: ToolCallEvent; result: ToolResultEvent | null }
+  | { kind: 'code'; event: CodeRunEvent }
+  | { kind: 'chart'; event: ChartReadyEvent }
+  | { kind: 'filtered'; event: ResultsFilteredEvent }
+  | { kind: 'skipped'; event: ToolSkippedEvent }
+  | { kind: 'gate'; gate: GateEvent }
+  | { kind: 'error'; message: string }
+
 // Pairs each tool_call with the tool_result that follows it, so the trace shows
 // one card per call rather than two disconnected events.
-function buildRows(events) {
-  const rows = []
-  const pending = []
+function buildRows(events: AgentEvent[]): Row[] {
+  const rows: Row[] = []
+  const pending: Extract<Row, { kind: 'tool' }>[] = []
 
   for (const e of events) {
     if (e.name === 'node_start') {
       rows.push({ kind: 'node', node: e.node, timestamp: e.timestamp })
     } else if (e.name === 'tool_call') {
-      const row = { kind: 'tool', call: e, result: null }
+      const row: Extract<Row, { kind: 'tool' }> = { kind: 'tool', call: e, result: null }
       rows.push(row)
       pending.push(row)
     } else if (e.name === 'tool_result') {
@@ -44,8 +58,8 @@ function buildRows(events) {
   return rows
 }
 
-export default function AgentTrace({ events, status }) {
-  const endRef = useRef(null)
+export default function AgentTrace({ events, status }: { events: AgentEvent[]; status: AgentStatus }) {
+  const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })

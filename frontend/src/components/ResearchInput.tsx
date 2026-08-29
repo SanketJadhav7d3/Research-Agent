@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchProviders, improvePrompt } from '../lib/api'
+import type { AgentStatus, ProvidersResponse } from '../types'
+import type { StartArgs } from '../hooks/useAgentStream'
 
 // The first two draw charts, because market data comes back as figures the
 // agent can plot directly. The last two do not, and that is deliberate: a
@@ -12,19 +14,31 @@ const EXAMPLES = [
   'What happened to SVB and what were the regulatory consequences?',
 ]
 
-const LABELS = {
+const LABELS: Record<string, string> = {
   google_genai: 'Google Gemini',
   openai: 'OpenAI',
   anthropic: 'Anthropic Claude',
 }
 
 // "ai act, gdpr" -> ["ai act", "gdpr"]
-const parseTerms = (raw) =>
+const parseTerms = (raw: string) =>
   raw.split(',').map((t) => t.trim()).filter(Boolean)
 
-export default function ResearchInput({ onStart, onStop, status }) {
+interface Improvement {
+  original?: string
+  changes?: string[]
+  error?: string
+}
+
+export default function ResearchInput({
+  onStart, onStop, status,
+}: {
+  onStart: (args: StartArgs) => void
+  onStop: () => void
+  status: AgentStatus
+}) {
   const [goal, setGoal] = useState('')
-  const [providers, setProviders] = useState(null)
+  const [providers, setProviders] = useState<ProvidersResponse | null>(null)
   const [provider, setProvider] = useState('')
   const [apiKey, setApiKey] = useState('')
 
@@ -34,7 +48,7 @@ export default function ResearchInput({ onStart, onStop, status }) {
 
   const [improving, setImproving] = useState(false)
   // Set only while a rewrite is on screen, so it can be reverted.
-  const [improvement, setImprovement] = useState(null)
+  const [improvement, setImprovement] = useState<Improvement | null>(null)
 
   useEffect(() => {
     fetchProviders()
@@ -51,10 +65,10 @@ export default function ResearchInput({ onStart, onStop, status }) {
   // a user can start a run against text that is about to change under them, or
   // lose what they were typing.
   const busy = running || improving
-  const needsKey = providers && provider && provider !== providers.default
+  const needsKey = Boolean(providers && provider && provider !== providers.default)
   const credentials = needsKey ? { provider, api_key: apiKey } : {}
 
-  const setGoalManually = (text) => {
+  const setGoalManually = (text: string) => {
     setGoal(text)
     setImprovement(null)
   }
@@ -68,7 +82,7 @@ export default function ResearchInput({ onStart, onStop, status }) {
       setImprovement({ original: text, changes: result.changes ?? [] })
       setGoal(result.improved)
     } catch (err) {
-      setImprovement({ error: err.message })
+      setImprovement({ error: err instanceof Error ? err.message : String(err) })
     } finally {
       setImproving(false)
     }
@@ -79,7 +93,7 @@ export default function ResearchInput({ onStart, onStop, status }) {
     setImprovement(null)
   }
 
-  const submit = (e) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!goal.trim() || busy) return
     onStart({
@@ -126,7 +140,7 @@ export default function ResearchInput({ onStart, onStop, status }) {
               Undo
             </button>
           </div>
-          {improvement.changes.length > 0 ? (
+          {improvement.changes && improvement.changes.length > 0 ? (
             <ul>
               {improvement.changes.map((c, i) => <li key={i}>{c}</li>)}
             </ul>

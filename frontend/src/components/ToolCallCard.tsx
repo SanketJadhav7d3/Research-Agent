@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import type { ToolCallEvent, ToolResultEvent } from '../types'
 
-const MARKS = {
+const MARKS: Record<string, string> = {
   web_search: '🔍',
   news_search: '📰',
   read_page: '📄',
@@ -9,7 +10,7 @@ const MARKS = {
 }
 
 // One tool call plus its result, collapsed by default.
-export default function ToolCallCard({ call, result }) {
+export default function ToolCallCard({ call, result }: { call: ToolCallEvent; result: ToolResultEvent | null }) {
   const [open, setOpen] = useState(false)
   const query = Object.values(call.input ?? {})[0] ?? ''
 
@@ -18,7 +19,7 @@ export default function ToolCallCard({ call, result }) {
       <button className="tool-head" onClick={() => setOpen((o) => !o)}>
         <span className="tool-icon">{MARKS[call.tool] ?? '🔧'}</span>
         <span className="tool-name">{call.tool}</span>
-        <span className="tool-query">{query}</span>
+        <span className="tool-query">{String(query)}</span>
         <span className="tool-count">
           {result ? `${result.result_count} results` : '…'}
         </span>

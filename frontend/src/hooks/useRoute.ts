@@ -7,10 +7,10 @@ import { useCallback, useEffect, useState } from 'react'
 // already does that (`try_files $uri $uri/ /index.html`), and Vite's dev
 // server does it by default. Without that, a hard refresh on /app would 404.
 
-const normalise = (path) =>
+const normalise = (path: string) =>
   path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path
 
-export function useRoute() {
+export function useRoute(): [string, (to: string) => void] {
   const [route, setRoute] = useState(() => normalise(window.location.pathname))
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export function useRoute() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  const navigate = useCallback((to) => {
+  const navigate = useCallback((to: string) => {
     if (normalise(to) === normalise(window.location.pathname)) return
     window.history.pushState(null, '', to)
     setRoute(normalise(to))

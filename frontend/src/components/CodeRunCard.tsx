@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import type { CodeRunEvent } from '../types'
 
 // One run of agent-written code, collapsed by default.
 //
 // The code is worth showing rather than hiding: it is the audit trail for
 // every chart in the report. If a figure looks wrong, this is where you see
 // whether the number was read out of the evidence or typed by hand.
-export default function CodeRunCard({ event }) {
+export default function CodeRunCard({ event }: { event: CodeRunEvent }) {
   const [open, setOpen] = useState(false)
 
   return (

@@ -4,11 +4,20 @@
 // most reports contain no chart at all, so nobody pays for it until a chart
 // actually arrives.
 
-let plotlyPromise = null
+import type { Chart, PlotlySpec } from '../types'
 
-export function loadPlotly() {
+// plotly.js-dist-min ships no types; this covers only what this app calls.
+interface PlotlyModule {
+  newPlot(node: HTMLElement, data: unknown[], layout: Record<string, unknown>, config: Record<string, unknown>): Promise<unknown>
+  purge(node: HTMLElement): void
+  toImage(spec: { data: unknown[]; layout: Record<string, unknown> }, opts: Record<string, unknown>): Promise<string>
+}
+
+let plotlyPromise: Promise<PlotlyModule> | null = null
+
+export function loadPlotly(): Promise<PlotlyModule> {
   if (!plotlyPromise) {
-    plotlyPromise = import('plotly.js-dist-min').then((m) => m.default ?? m)
+    plotlyPromise = import('plotly.js-dist-min').then((m: any) => m.default ?? m)
   }
   return plotlyPromise
 }
@@ -18,20 +27,20 @@ export function loadPlotly() {
 // labels and hover templates, which makes that a script-injection route.
 // Stripping anything tag-shaped from every string closes it without breaking
 // legitimate labels.
-function scrub(value) {
-  if (typeof value === 'string') return value.replace(/<[^>]*>/g, '')
-  if (Array.isArray(value)) return value.map(scrub)
+function scrub<T>(value: T): T {
+  if (typeof value === 'string') return value.replace(/<[^>]*>/g, '') as unknown as T
+  if (Array.isArray(value)) return value.map(scrub) as unknown as T
   if (value && typeof value === 'object') {
-    const out = {}
+    const out: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(value)) out[k] = scrub(v)
-    return out
+    return out as unknown as T
   }
   return value
 }
 
 // Read a CSS custom property so the charts follow the app's theme rather than
 // carrying colours of their own.
-function token(name, fallback) {
+function token(name: string, fallback: string): string {
   if (typeof window === 'undefined') return fallback
   const value = getComputedStyle(document.documentElement).getPropertyValue(name)
   return value.trim() || fallback
@@ -40,8 +49,8 @@ function token(name, fallback) {
 // Applied on the client, not asked of the model. Prompting for a palette never
 // matches exactly and costs a retry when it doesn't; overriding here means
 // every chart fits whatever the theme is at the time.
-export function themed(spec) {
-  const safe = scrub(spec)
+export function themed(spec: PlotlySpec | undefined): { data: unknown[]; layout: Record<string, unknown> } {
+  const safe = scrub(spec ?? {})
   const text = token('--text-dim', '#97a3bf')
   const grid = token('--border', '#1d283f')
   const axis = {
@@ -52,10 +61,12 @@ export function themed(spec) {
     title: { font: { color: text, size: 13 } },
   }
 
+  const layout = (safe.layout ?? {}) as Record<string, unknown>
+
   return {
     data: safe.data ?? [],
     layout: {
-      ...safe.layout,
+      ...layout,
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: 'rgba(0,0,0,0)',
       font: { family: 'Inter, system-ui, sans-serif', color: text, size: 13 },
@@ -71,8 +82,8 @@ export function themed(spec) {
       // titles stacked look like a mistake.
       title: undefined,
       margin: { l: 56, r: 20, t: 16, b: 48 },
-      xaxis: { ...axis, ...safe.layout?.xaxis },
-      yaxis: { ...axis, ...safe.layout?.yaxis },
+      xaxis: { ...axis, ...(layout.xaxis as Record<string, unknown> | undefined) },
+      yaxis: { ...axis, ...(layout.yaxis as Record<string, unknown> | undefined) },
       legend: { font: { color: text, size: 12 }, orientation: 'h', y: -0.22 },
       hoverlabel: {
         bgcolor: token('--surface-2', '#1a2438'),
@@ -92,7 +103,7 @@ export const PLOT_CONFIG = {
 
 // Renders a chart to a PNG data URI without needing it on screen. Used by the
 // markdown export, where interactive charts obviously cannot survive.
-export async function toDataUri(chart) {
+export async function toDataUri(chart: Chart): Promise<string> {
   if (chart.format === 'png') return `data:image/png;base64,${chart.data}`
   const Plotly = await loadPlotly()
   return Plotly.toImage(themed(chart.spec), {

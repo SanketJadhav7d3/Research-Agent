@@ -60,7 +60,16 @@ const INTRO_DELAY_MS = 300
 // while it still has something on it.
 const UNMOUNT_AFTER_MS = FADE_OUT_MS + 60
 
-function createStars(width, height) {
+interface Star {
+  radius: number
+  angle: number
+  size: number
+  alpha: number
+  phase: number
+  hue: string
+}
+
+function createStars(width: number, height: number): Star[] {
   // Full diagonal, so the field runs past the edges of the viewport and stars
   // rotate into view rather than merely across it.
   const maxRadius = Math.hypot(width, height)
@@ -92,7 +101,16 @@ function createStars(width, height) {
   })
 }
 
-function spawnShootingStar(width, height) {
+interface ShootingStar {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  life: number
+  span: number
+}
+
+function spawnShootingStar(width: number, height: number): ShootingStar {
   // Enter from the top edge, travelling down and across. Either direction, so
   // it does not become a metronome.
   const leftToRight = Math.random() < 0.5
@@ -109,10 +127,10 @@ function spawnShootingStar(width, height) {
 
 // Slow at both ends. Linear fading reads as mechanical: most of the brightness
 // lands in the first moments and the tail is imperceptible.
-const smoothstep = (t) => t * t * (3 - 2 * t)
+const smoothstep = (t: number) => t * t * (3 - 2 * t)
 
-export default function Starfield({ enabled }) {
-  const canvasRef = useRef(null)
+export default function Starfield({ enabled }: { enabled: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   // Read inside the draw loop so a toggle changes the fade target without
   // tearing down and restarting the animation.
   const enabledRef = useRef(enabled)
@@ -143,17 +161,18 @@ export default function Starfield({ enabled }) {
     const canvas = canvasRef.current
     if (!canvas) return undefined
     const ctx = canvas.getContext('2d')
+    if (!ctx) return undefined
 
-    let stars = []
-    let shooting = null
+    let stars: Star[] = []
+    let shooting: ShootingStar | null = null
     let width = 0
     let height = 0
-    let frame = null
+    let frame: number | null = null
     // Total rotation of the field, in radians. Accumulated rather than derived
     // from a start timestamp so that pausing on a hidden tab resumes from
     // where it stopped instead of jumping forward.
     let rotation = 0
-    let last = null
+    let last: number | null = null
     // Current field opacity, 0 to 1, and the delay still to run before it
     // starts climbing.
     let fade = 0
@@ -172,7 +191,7 @@ export default function Starfield({ enabled }) {
     }
 
     const drawShootingStar = () => {
-      const { x, y, vx, vy, life, span } = shooting
+      const { x, y, vx, vy, life, span } = shooting!
       // Fade in over the first fifth of its life, out over the rest.
       const t = life / span
       const trail = t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8
@@ -195,7 +214,7 @@ export default function Starfield({ enabled }) {
       ctx.stroke()
     }
 
-    const advanceFade = (elapsed) => {
+    const advanceFade = (elapsed: number) => {
       if (delay > 0) {
         delay -= elapsed
         return
@@ -208,7 +227,7 @@ export default function Starfield({ enabled }) {
         : Math.max(target, fade - step)
     }
 
-    const draw = (now) => {
+    const draw = (now: number) => {
       // Clamped so a stutter or a resumed tab cannot produce a lurch.
       const elapsed = last === null ? 0 : Math.min(now - last, 100)
       last = now
@@ -269,7 +288,7 @@ export default function Starfield({ enabled }) {
     // looking at.
     const visibility = () => {
       if (document.hidden) {
-        cancelAnimationFrame(frame)
+        if (frame !== null) cancelAnimationFrame(frame)
         frame = null
       } else if (frame === null) {
         last = null
@@ -283,7 +302,7 @@ export default function Starfield({ enabled }) {
     document.addEventListener('visibilitychange', visibility)
 
     return () => {
-      cancelAnimationFrame(frame)
+      if (frame !== null) cancelAnimationFrame(frame)
       window.removeEventListener('resize', resize)
       document.removeEventListener('visibilitychange', visibility)
     }

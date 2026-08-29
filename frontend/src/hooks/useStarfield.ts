@@ -10,7 +10,7 @@ const KEY = 'starfield'
 // Windows' animation effects switched off saw a starfield that simply never
 // moved, with no indication why. An explicit toggle is the better answer —
 // the OS preference picks the default, the user's own choice overrides it.
-function initial() {
+function initial(): boolean {
   try {
     const stored = window.localStorage.getItem(KEY)
     if (stored) return stored === 'on'
@@ -21,7 +21,7 @@ function initial() {
   }
 }
 
-export function useStarfield() {
+export function useStarfield(): [boolean, () => void] {
   const [enabled, setEnabled] = useState(initial)
 
   useEffect(() => {

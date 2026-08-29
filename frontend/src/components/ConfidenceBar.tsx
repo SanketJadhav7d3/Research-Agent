@@ -1,6 +1,8 @@
+import type { ConfidenceEntry } from '../types'
+
 // Confidence across research rounds. Showing every round rather than only the
 // last makes the loop-back visible: you can see a weak first pass improve.
-export default function ConfidenceBar({ history }) {
+export default function ConfidenceBar({ history }: { history: ConfidenceEntry[] }) {
   if (!history?.length) return null
 
   const latest = history[history.length - 1]
@@ -39,7 +41,7 @@ export default function ConfidenceBar({ history }) {
 
       {latest.reason && <p className="confidence-reason">{latest.reason}</p>}
 
-      {latest.gaps?.length > 0 && (
+      {latest.gaps && latest.gaps.length > 0 && (
         <ul className="gaps">
           {latest.gaps.map((g, i) => <li key={i}>{g}</li>)}
         </ul>

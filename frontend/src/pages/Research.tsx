@@ -2,10 +2,13 @@ import ResearchInput from '../components/ResearchInput'
 import AgentTrace from '../components/AgentTrace'
 import ConfidenceBar from '../components/ConfidenceBar'
 import ReportViewer from '../components/ReportViewer'
+import type { useAgentStream } from '../hooks/useAgentStream'
 
 // The agent run itself lives in App, not here, so navigating back to the home
 // page mid-run does not abandon the research.
-export default function Research({ events, status, report, confidence, error, start, stop }) {
+export default function Research({
+  events, status, report, confidence, error, start, stop,
+}: ReturnType<typeof useAgentStream>) {
   return (
     <div className="page">
       <header className="header">
