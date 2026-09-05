@@ -4,6 +4,9 @@ Fixed outer skeleton, free inner execution: the sequence of nodes is always
 guaranteed, while the decisions inside Execute are the model's.
 
     clarify -> plan -> execute -> reflect -> visualize -> synthesize
+                          |
+                          +-- one sub-agent per sub-question, in parallel,
+                              merged before reflect sees any of it
 
 Reflect does not always continue to synthesize. If it scores its own work
 below the threshold and iterations remain, control returns to execute for

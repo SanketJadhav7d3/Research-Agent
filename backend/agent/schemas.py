@@ -20,7 +20,7 @@ class ClarifiedGoal(BaseModel):
 
 class ResearchPlan(BaseModel):
     sub_questions: list[str] = Field(
-        description="Three to five concrete sub-questions that together answer the goal. "
+        description="Two to three concrete sub-questions that together answer the goal. "
         "Each must be independently researchable."
     )
 

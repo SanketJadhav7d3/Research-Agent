@@ -15,10 +15,25 @@ from langgraph.config import get_stream_writer
 
 
 def emit(event: str, **data: Any) -> None:
+    emit_via(capture(), event, **data)
+
+
+def capture():
+    """Grab the stream writer so worker threads can emit too.
+
+    get_stream_writer() reads a context variable that is not propagated into
+    threads, so a worker calling emit() directly would silently drop its
+    events. The parallel sub-agents capture the writer on the main thread
+    before they fan out, and emit through it.
+    """
     try:
-        writer = get_stream_writer()
+        return get_stream_writer()
     except Exception:  # noqa: BLE001 - not running inside a graph
-        return
+        return None
+
+
+def emit_via(writer, event: str, **data: Any) -> None:
+    """Emit through an already-captured writer. Safe to call from any thread."""
     if writer is None:
         return
     writer({
