@@ -63,10 +63,13 @@ export interface NodeStartEvent extends AgentEventBase {
   node: string
 }
 
+// `agent` is set while sub-agents are researching in parallel, and names which
+// one made the call. Absent outside a fan-out.
 export interface ToolCallEvent extends AgentEventBase {
   name: 'tool_call'
   tool: string
   input?: Record<string, unknown>
+  agent?: string
 }
 
 export interface ToolResultEvent extends AgentEventBase {
@@ -74,6 +77,7 @@ export interface ToolResultEvent extends AgentEventBase {
   tool: string
   result_count?: number
   sources?: Source[]
+  agent?: string
 }
 
 export interface CodeRunEvent extends AgentEventBase {
@@ -93,12 +97,45 @@ export interface ResultsFilteredEvent extends AgentEventBase {
   name: 'results_filtered'
   dropped: number
   terms: string[]
+  agent?: string
 }
 
 export interface ToolSkippedEvent extends AgentEventBase {
   name: 'tool_skipped'
   tool: string
   input?: Record<string, unknown>
+  agent?: string
+}
+
+// --- parallel sub-agents ---
+// Execute fans out one agent per sub-question; these bracket that fan-out.
+
+export interface FanoutEvent extends AgentEventBase {
+  name: 'fanout'
+  agents: number
+  questions: string[]
+  budget: number
+}
+
+export interface SubagentStartEvent extends AgentEventBase {
+  name: 'subagent_start'
+  agent: string
+  question: string
+}
+
+export interface SubagentDoneEvent extends AgentEventBase {
+  name: 'subagent_done'
+  agent: string
+  question: string
+  tool_calls: number
+  findings: number
+}
+
+export interface MergedEvent extends AgentEventBase {
+  name: 'merged'
+  agents: number
+  tool_calls: number
+  findings: number
 }
 
 export interface GateEvent extends AgentEventBase {
@@ -130,6 +167,10 @@ export type AgentEvent =
   | ChartReadyEvent
   | ResultsFilteredEvent
   | ToolSkippedEvent
+  | FanoutEvent
+  | SubagentStartEvent
+  | SubagentDoneEvent
+  | MergedEvent
   | GateEvent
   | ErrorEvent
   | ConfidenceCheckEvent
