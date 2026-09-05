@@ -18,6 +18,24 @@ MAX_TOOL_CALLS_PER_ROUND = 8
 MAX_TOOL_CALLS_TOTAL = 20
 MAX_MODEL_TURNS_CAP = 6
 
+# Parallel sub-agents. One worker per sub-question, each with its own context
+# window and tool budget. Capped at 3 because the free tiers we run on are
+# rate-limited per minute at the organisation level, and every worker's model
+# turns come out of the same allowance — more workers would spend the run
+# hitting 429s rather than researching.
+MAX_PARALLEL_AGENTS = 3
+# Per worker, per round. Deliberately smaller than the round budget: several
+# workers share MAX_TOOL_CALLS_TOTAL, so one cannot be allowed to drain it.
+MAX_TOOL_CALLS_PER_AGENT = 4
+
+# Rate-limit retries. Free tiers meter per minute at the organisation level, so
+# parallel sub-agents brush the ceiling in bursts rather than steadily — a few
+# patient retries turn a failed run into a slightly slower one. Capped so a
+# provider asking for a very long wait fails fast instead of stalling the
+# request behind a timeout.
+MODEL_RETRY_ATTEMPTS = 4
+MODEL_RETRY_MAX_SLEEP = 30.0
+
 # Charting gets its own budget rather than sharing the research one. Code
 # often needs a look at the data before it works, and a couple of retries
 # must not be able to starve the searches.
