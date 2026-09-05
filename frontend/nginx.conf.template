@@ -23,6 +23,20 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # index.html names the hashed bundles, so it is the one file that must
+    # never be served stale. With no Cache-Control at all a browser falls back
+    # to heuristic caching and may reuse it without revalidating — which pins
+    # that visitor to the previous deploy's JS forever, because the old
+    # index.html only ever references the old hashed filenames. A deploy then
+    # looks like it silently did nothing.
+    #
+    # no-cache means "revalidate", not "do not store": the ETag still makes
+    # the common case a 304 with an empty body, so this costs a round trip
+    # rather than a re-download.
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
     # Hashed filenames, so these can be cached hard and forever. Without this
     # the charting chunk is refetched on every visit.
     location /assets/ {
