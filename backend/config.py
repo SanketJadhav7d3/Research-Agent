@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -73,6 +74,27 @@ class Settings(BaseSettings):
     # Research tool keys.
     tavily_api_key: str = ""
     jina_api_key: str = ""
+
+    @field_validator(
+        "google_api_key", "openai_api_key", "anthropic_api_key",
+        "tavily_api_key", "jina_api_key",
+        mode="after",
+    )
+    @classmethod
+    def _strip_key(cls, value: str) -> str:
+        """Trim whitespace from credentials before anything sends them.
+
+        A key stored with a trailing newline — which is what you get from a
+        file written on Windows, or an `echo` into a secret — is not a wrong
+        key, but it makes an invalid HTTP header, so every request fails with
+        a header error rather than an auth error and the cause is easy to
+        misread.
+
+        Worse, the client raises with the offending header in the message, so
+        an untrimmed key ends up in the logs in plaintext. Stripping here is
+        the difference between a working deploy and a leaked credential.
+        """
+        return value.strip()
 
     @property
     def cors_origin_list(self) -> list[str]:
