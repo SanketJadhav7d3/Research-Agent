@@ -1,0 +1,13 @@
+# What `gcloud builds submit` / `run deploy --source` uploads to the staging
+# bucket. Distinct from .dockerignore, which Cloud Build applies to the build
+# context only once the upload has already happened — without this file the
+# local .venv ships to Cloud Storage on every deploy just to be thrown away.
+#
+# gcloud's fallback is a .gitignore in the source directory, and there is none
+# here: the repo's .gitignore sits one level up, outside ./backend.
+
+.venv/
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
