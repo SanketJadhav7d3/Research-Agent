@@ -28,7 +28,7 @@ from agent.llm import get_model, invoke_with_retry
 from agent.schemas import ClarifiedGoal, Reflection, ResearchPlan
 from agent.state import AgentState
 from agent.tools import ALL_TOOLS, TOOLS_BY_NAME
-from agent.tools.code import make_run_python
+from agent.tools.code import build_payload, make_run_python
 
 log = logging.getLogger(__name__)
 
@@ -619,22 +619,25 @@ def _visualize_brief(state: AgentState) -> str:
     Titles and sources only. The numbers stay in the sandbox, which is the
     whole point — the model writes code that reads them, so it never has the
     opportunity to transcribe one wrongly.
+
+    Enumerated over the payload the sandbox will actually receive, not over the
+    raw findings: build_payload drops failed tool calls, so counting positions
+    here independently makes every index quoted below wrong by the number of
+    failures that preceded it.
     """
+    payload = build_payload(state["findings"])
     lines = []
     structured = 0
-    for i, f in enumerate(state["findings"], 1):
-        if f.get("error"):
-            continue
-        title = f.get("title") or f.get("claim")
+    for pos, item in enumerate(payload):
         note = ""
         # Naming the keys — never the values — is what removes the excuse to
         # print the data and then retype it. The model can index straight in.
-        if isinstance(f.get("data"), dict) and f["data"]:
+        if isinstance(item.get("data"), dict) and item["data"]:
             structured += 1
-            note = f"  -> findings[{i - 1}]['data'] has: {', '.join(sorted(f['data']))}"
-        elif f.get("pages"):
-            note = f"  -> {f['pages']}pp document, figures are in ['text']"
-        lines.append(f"[{i}] {title}" + (f"\n{note}" if note else ""))
+            note = f"  -> findings[{pos}]['data'] has: {', '.join(sorted(item['data']))}"
+        elif item.get("pages"):
+            note = f"  -> {item['pages']}pp document, figures are in ['text']"
+        lines.append(f"[{pos + 1}] {item['title']}" + (f"\n{note}" if note else ""))
 
     hint = (
         f"\n\n{structured} finding(s) carry a ready-made `data` dict. Chart "
